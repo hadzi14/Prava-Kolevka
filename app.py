@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from pypdf import PdfReader
 from PIL import Image
 import openai
-from langchain_text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage

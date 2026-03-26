@@ -827,6 +827,8 @@ def search_laws(query: str, max_results: int = 15) -> List[Dict]:
 
     results.sort(key=lambda x: x.get('score', 0), reverse=True)
     return results[:max_results]
+
+
  """
 ═══════════════════════════════════════════════════════════════
  PRAVA KOLEVKA v5.3 — Pravni AI za Kosovo

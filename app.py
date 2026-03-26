@@ -10,15 +10,15 @@ import os, re, io, json, sqlite3, hashlib, secrets, base64
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Tuple, Optional
 from contextlib import contextmanager
-
 from pypdf import PdfReader
 from PIL import Image
 import openai
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document, HumanMessage
 import plotly.graph_objects as go
+from docx import Document as DocxDocument
 from docx import Document as DocxDocument
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH

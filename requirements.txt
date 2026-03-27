@@ -12,3 +12,4 @@ python-docx
 plotly
 bcrypt
 tiktoken
+stripe

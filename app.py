@@ -1612,7 +1612,7 @@ DOC_TEMPLATES = {
 CSS = f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700&display=swap');
-body,p,h1,h2,h3,h4,h5,h6,span,div,input,textarea,button,label,a{{font-family:'Inter',sans-serif!important}}
+body,p,h1,h2,h3,h4,h5,h6,div,input,textarea,button,label,a{{font-family:'Inter',sans-serif!important}}
 .stApp{{background:{SURFACE}!important}}
 #MainMenu,footer,header{{visibility:hidden}}
 [data-testid="stSidebar"]{{display:none!important}}

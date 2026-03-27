@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════
- PRAVA KOLEVKA v5.4 — Pravni AI za Kosovo
- Clean import, preview, export, stroži retrieval
+ PRAVA KOLEVKA v6.0 — Pravni AI za Kosovo
+ Predmeti, dokumenti, Stripe priprema, čist UI
 ═══════════════════════════════════════════════════════════════
 """
 
@@ -29,6 +29,13 @@ try:
 except ImportError:
     BCRYPT_AVAILABLE = False
 
+try:
+    import stripe as stripe_lib
+    STRIPE_AVAILABLE = True
+except ImportError:
+    stripe_lib = None
+    STRIPE_AVAILABLE = False
+
 # ═══════════════════════════════════════════════════════════════
 #  KONFIGURACIJA
 # ═══════════════════════════════════════════════════════════════
@@ -52,6 +59,12 @@ ADMIN_DEFAULT_PASSWORD = get_secret(
     "ADMIN_PASSWORD", "PravaKolevka2024!")
 SESSION_TIMEOUT_MINUTES = 480
 
+STRIPE_SECRET_KEY = get_secret("STRIPE_SECRET_KEY")
+STRIPE_SUCCESS_URL = get_secret(
+    "STRIPE_SUCCESS_URL", "https://pravakolevka.rs/success")
+STRIPE_CANCEL_URL = get_secret(
+    "STRIPE_CANCEL_URL", "https://pravakolevka.rs/cancel")
+
 NAVY = "#0A1628"
 NAVY_MID = "#1B2A4A"
 GOLD = "#C5962C"
@@ -60,118 +73,86 @@ GOLD_PALE = "#FBF7ED"
 SURFACE = "#F5F4F0"
 CARD_BG = "#FFFFFF"
 TEXT_MUTED = "#6B7280"
-SUCCESS = "#059669"
-ERROR = "#DC2626"
-WARNING = "#D97706"
+SUCCESS_C = "#059669"
+ERROR_C = "#DC2626"
+WARNING_C = "#D97706"
 
 PLANS = {
     "obican": {
         "name": "Običan paket", "price": 19,
-        "max_users": 1, "icon": "📦", "can_share": False},
+        "max_users": 1, "icon": "📦",
+        "stripe_price": "price_obican_PLACEHOLDER"},
     "bolji": {
-        "name": "Bolji paket", "price": 29,
-        "max_users": 5, "icon": "⭐", "can_share": True},
+        "name": "Bolji paket", "price": 30,
+        "max_users": 5, "icon": "⭐",
+        "stripe_price": "price_bolji_PLACEHOLDER"},
     "dogovor": {
         "name": "Paket po dogovoru", "price": 0,
-        "max_users": 999, "icon": "💎", "can_share": True},
+        "max_users": 999, "icon": "💎",
+        "stripe_price": ""},
     "enterprise": {
         "name": "Enterprise", "price": 0,
-        "max_users": 999, "icon": "🔧", "can_share": True},
+        "max_users": 999, "icon": "🔧",
+        "stripe_price": ""},
 }
 GRACE_PERIOD_DAYS = 3
-LANG_NAMES = {"sr": "Srpski", "al": "Albanski", "en": "Engleski"}
+LANG_NAMES = {
+    "sr": "Srpski", "al": "Albanski", "en": "Engleski"}
 
 HIERARCHY_LEVELS = {
-    1: {"name": "Ustav", "icon": "👑", "weight": 15,
-        "desc": "Najviši pravni akt"},
+    1: {"name": "Ustav", "icon": "👑", "weight": 15},
     2: {"name": "Međunarodni sporazum", "icon": "🌍",
-        "weight": 10, "desc": "Ratifikovani ugovori"},
-    3: {"name": "Zakon", "icon": "📜", "weight": 5,
-        "desc": "Zakon Skupštine Kosova"},
+        "weight": 10},
+    3: {"name": "Zakon", "icon": "📜", "weight": 5},
     4: {"name": "Podzakonski akt", "icon": "📋",
-        "weight": 2, "desc": "Uredba, pravilnik"},
+        "weight": 2},
     5: {"name": "Opštinski propis", "icon": "🏘️",
-        "weight": 0, "desc": "Lokalni propisi"},
+        "weight": 0},
 }
 
 LEGAL_AREAS = [
-    "Ustavno pravo", "Krivično pravo", "Krivični postupak",
-    "Građansko pravo", "Parnični postupak", "Upravno pravo",
-    "Radno pravo", "Porodično pravo", "Prekršajno pravo",
-    "Pravosuđe", "Tužilaštvo", "Advokatura",
+    "Ustavno pravo", "Krivično pravo",
+    "Krivični postupak", "Građansko pravo",
+    "Parnični postupak", "Upravno pravo",
+    "Radno pravo", "Porodično pravo",
+    "Prekršajno pravo", "Pravosuđe",
+    "Tužilaštvo", "Advokatura",
     "Policijsko pravo", "Obligaciono pravo",
     "Imovinsko pravo", "Ostalo",
 ]
 
 AREA_KEYWORDS = {
     "Krivično pravo": [
-        "krivičn", "kazna", "kazne", "kažnjav", "delo",
-        "krađa", "ubistvo", "razbojništvo", "prevara",
-        "falsifik", "nasilj", "pretnja", "silovanj",
-        "zlostavljanj", "korupcij", "mito", "pranje novca",
-        "terorizam", "oružje", "droga", "narkotik",
-        "zatvor", "robija", "uslovn", "probacij",
-        "umišljaj", "nehat", "recidiv", "nužna odbrana",
-    ],
+        "krivičn", "kazna", "delo", "krađa", "ubistvo",
+        "prevara", "nasilj", "pretnja", "korupcij",
+        "zatvor", "umišljaj", "nehat", "nužna odbrana"],
     "Krivični postupak": [
         "postupak", "pritvor", "hapšenj", "istrag",
-        "optužnic", "suđenj", "presud", "žalb", "dokaz",
-        "svedok", "veštačenj", "pretres", "branilac",
-        "okrivljeni", "osumnjičeni", "tužilac",
-        "saslušanj", "ročišt", "nadležnost",
-    ],
+        "optužnic", "presud", "žalb", "dokaz",
+        "branilac", "okrivljeni", "tužilac"],
     "Građansko pravo": [
         "obligacij", "ugovor", "šteta", "naknada",
-        "odgovornost", "potraživanj", "dug", "zajam",
-        "hipoteka", "zakup", "prodaj", "zastarelost",
-    ],
+        "odgovornost", "hipoteka", "zastarelost"],
     "Parnični postupak": [
-        "parnič", "tužba", "tužilac", "tuženi",
-        "prvostepen", "drugostepen", "revizija",
-        "izvršenje", "presuda", "rešenje",
-    ],
+        "parnič", "tužba", "prvostepen", "revizija",
+        "izvršenje", "presuda", "rešenje"],
     "Porodično pravo": [
-        "brak", "razvod", "alimentacij", "izdržavanj",
-        "starateljstv", "usvojenj", "roditeljsk",
-        "dete", "deca", "porodičn",
-    ],
+        "brak", "razvod", "alimentacij", "starateljstv",
+        "dete", "deca", "porodičn"],
     "Radno pravo": [
-        "rad", "zaposlen", "radni odnos", "otkaz",
-        "plata", "odmor", "ugovor o radu", "sindikat",
-        "štrajk", "penzij", "bolovanje",
-    ],
+        "rad", "zaposlen", "otkaz", "plata",
+        "ugovor o radu", "sindikat", "penzij"],
     "Upravno pravo": [
-        "upravn", "organ", "rešenj", "inspekcij",
-        "dozvol", "javna nabavka",
-    ],
+        "upravn", "organ", "inspekcij", "dozvol"],
     "Prekršajno pravo": [
-        "prekršaj", "novčana kazna", "mandatna",
-    ],
-    "Pravosuđe": [
-        "sudij", "sud", "sudski", "vrhovni sud",
-        "apelacion", "osnovni sud",
-    ],
-    "Tužilaštvo": [
-        "tužilaštv", "tužilac", "javni tužilac",
-        "krivično gonjenje",
-    ],
-    "Advokatura": [
-        "advokat", "advokatsk", "branilac",
-        "punomoćnik", "advokatska komora",
-    ],
-    "Policijsko pravo": [
-        "policij", "policajac", "privođenj",
-        "hapšenj", "upotreba sile",
-    ],
+        "prekršaj", "novčana kazna", "mandatna"],
     "Ustavno pravo": [
         "ustav", "ustavni", "osnovna prava",
-        "ljudska prava", "slobode", "ustavni sud",
-    ],
+        "ljudska prava", "slobode", "ustavni sud"],
 }
 
 SHORTNAME_MAP = {
     "kz": ["Krivični zakonik"],
-    "krivični zakonik": ["Krivični zakonik"],
     "zkp": ["Zakonik o krivičnom postupku",
             "Zakon o krivičnom postupku"],
     "zoo": ["Zakon o obligacionim odnosima"],
@@ -179,21 +160,14 @@ SHORTNAME_MAP = {
     "zor": ["Zakon o radu"],
     "pz": ["Porodični zakon"],
     "zup": ["Zakon o upravnom postupku"],
-    "zakon o sudovima": ["Zakon o sudovima"],
-    "zakon o tužilaštvu": ["Zakon o tužilaštvu"],
-    "zakon o advokaturi": ["Zakon o advokaturi"],
-    "zakon o policiji": ["Zakon o policiji"],
-    "zakon o prekršajima": ["Zakon o prekršajima"],
     "ustav": ["Ustav Kosova", "Ustav Republike Kosovo"],
     "ustav kosova": ["Ustav Kosova"],
 }
 
 SERBIA_MARKERS = [
     "zakon republike srbije", "zakon rs",
-    "službeni glasnik rs", "krivični zakonik srbije",
-    "republika srbija", "narodna skupština",
-    "vrhovni kasacioni sud", "po srpskom pravu",
-    "u srbiji", "zakon srbije",
+    "službeni glasnik rs", "republika srbija",
+    "po srpskom pravu", "u srbiji", "zakon srbije",
 ]
 
 
@@ -204,9 +178,10 @@ SERBIA_MARKERS = [
 def init_ss():
     defaults = {
         "logged_in": False, "current_user": None,
-        "docs": [], "vs": None, "chat": [],
         "law_vs": None, "law_vs_version": "",
         "login_time": None,
+        "active_case_id": None,
+        "case_doc_vs": None, "case_doc_vs_id": None,
         "preview_articles": None,
         "preview_warnings": None,
         "preview_meta": None,
@@ -218,17 +193,18 @@ def init_ss():
 
 init_ss()
 # ═══════════════════════════════════════════════════════════════
-#  LOZINKE — bcrypt
+#  LOZINKE
 # ═══════════════════════════════════════════════════════════════
 
-def create_password_hash(password: str) -> Tuple[str, str]:
+def create_password_hash(password):
     if BCRYPT_AVAILABLE:
         h = bcrypt.hashpw(
             password.encode('utf-8'),
             bcrypt.gensalt(rounds=12)).decode('utf-8')
         return h, "bcrypt"
     salt = secrets.token_hex(16)
-    h = hashlib.sha256((password + salt).encode()).hexdigest()
+    h = hashlib.sha256(
+        (password + salt).encode()).hexdigest()
     return h, salt
 
 
@@ -245,7 +221,6 @@ def verify_password(password, stored_hash, stored_salt):
             (password + stored_salt).encode()).hexdigest()
         if legacy == stored_hash:
             return True, BCRYPT_AVAILABLE
-        return False, False
     return False, False
 
 
@@ -312,8 +287,6 @@ def init_database():
                 salt TEXT NOT NULL,
                 full_name TEXT NOT NULL,
                 role TEXT DEFAULT 'user',
-                firm_name TEXT DEFAULT '',
-                phone TEXT DEFAULT '',
                 plan TEXT DEFAULT 'obican',
                 is_active INTEGER DEFAULT 1,
                 subscription_start TEXT,
@@ -332,18 +305,15 @@ def init_database():
                 period_start TEXT, period_end TEXT,
                 status TEXT DEFAULT 'completed',
                 method TEXT DEFAULT 'manual',
-                notes TEXT DEFAULT '',
                 recorded_by INTEGER,
-                created_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (user_id) REFERENCES users(id)
+                created_at TEXT DEFAULT (datetime('now'))
             )""")
             c.execute("""CREATE TABLE IF NOT EXISTS usage_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
                 action TEXT NOT NULL,
                 details TEXT DEFAULT '',
-                created_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (user_id) REFERENCES users(id)
+                created_at TEXT DEFAULT (datetime('now'))
             )""")
             c.execute("""CREATE TABLE IF NOT EXISTS laws (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -368,25 +338,31 @@ def init_database():
                 paragraph_number TEXT DEFAULT '',
                 title TEXT DEFAULT '',
                 content TEXT NOT NULL,
-                created_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (law_id) REFERENCES laws(id)
+                created_at TEXT DEFAULT (datetime('now'))
             )""")
-            c.execute("""CREATE TABLE IF NOT EXISTS translations (
+            c.execute("""CREATE TABLE IF NOT EXISTS cases (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                source_filename TEXT,
-                source_language TEXT,
-                source_text TEXT,
-                translated_text TEXT,
-                created_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (user_id) REFERENCES users(id)
+                owner_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                created_at TEXT DEFAULT (datetime('now'))
             )""")
-            c.execute("""CREATE TABLE IF NOT EXISTS generated_docs (
+            c.execute("""CREATE TABLE IF NOT EXISTS case_messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                doc_type TEXT, content TEXT,
-                created_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (user_id) REFERENCES users(id)
+                case_id INTEGER NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                sources_html TEXT DEFAULT '',
+                confidence TEXT DEFAULT '',
+                created_at TEXT DEFAULT (datetime('now'))
+            )""")
+            c.execute("""CREATE TABLE IF NOT EXISTS case_documents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id INTEGER NOT NULL,
+                filename TEXT NOT NULL,
+                text_content TEXT NOT NULL,
+                language TEXT DEFAULT 'sr',
+                created_at TEXT DEFAULT (datetime('now'))
             )""")
             try:
                 c.execute(
@@ -417,11 +393,10 @@ def init_database():
 
 
 # ═══════════════════════════════════════════════════════════════
-#  CLEAN IMPORT PARSER v5.4
+#  PARSER
 # ═══════════════════════════════════════════════════════════════
 
-def clean_text(text: str) -> str:
-    """Čisti tekst od PDF artefakata."""
+def clean_text(text):
     text = re.sub(r'(\w)-\n(\w)', r'\1\2', text)
     text = re.sub(
         r'\n\s*[-—–]\s*\d{1,4}\s*[-—–]\s*\n', '\n', text)
@@ -436,10 +411,9 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
-def remove_toc(text: str) -> Tuple[str, bool]:
-    """Uklanja Table of Contents."""
+def remove_toc(text):
     toc_re = re.compile(
-        r'^\s*(?:Član|ČLAN|Neni|NENI|Članak)\s+\d+[a-zA-Z]?'
+        r'^\s*(?:Član|ČLAN|Neni|Članak)\s+\d+[a-zA-Z]?'
         r'.*?(?:\.{3,}|…{2,}|·{3,})\s*\d{1,4}\s*$',
         re.IGNORECASE)
     lines = text.split('\n')
@@ -468,22 +442,14 @@ def remove_toc(text: str) -> Tuple[str, bool]:
         if idx not in toc_idx), True
 
 
-def parse_articles(full_text: str) -> Tuple[List[Dict], List[str]]:
-    """
-    Clean Import Parser.
-    - SAMO "Član X" na početku reda = novi član
-    - Stavovi ostaju unutar člana
-    - Jedan red u bazi po članu
-    """
+def parse_articles(full_text):
     warnings = []
     text = clean_text(full_text)
     text, had_toc = remove_toc(text)
     if had_toc:
-        warnings.append("Uklonjen sadržaj (TOC).")
-
+        warnings.append("Uklonjen TOC.")
     lines = text.split('\n')
 
-    # Strogi patern: samo "Član X" ili "Član X - Naslov"
     hdr_solo = re.compile(
         r'^\s*(?:Član|ČLAN|Članak|ČLANAK|Neni|NENI)'
         r'\s+(\d+[a-zA-Z]?)\s*\.?\s*$', re.IGNORECASE)
@@ -491,7 +457,8 @@ def parse_articles(full_text: str) -> Tuple[List[Dict], List[str]]:
         r'^\s*(?:Član|ČLAN|Članak|ČLANAK|Neni|NENI)'
         r'\s+(\d+[a-zA-Z]?)\s*[.\s]*[-–—:]\s*(.+)$',
         re.IGNORECASE)
-    toc_chk = re.compile(r'(?:\.{3,}|…{2,})\s*\d{1,4}\s*$')
+    toc_chk = re.compile(
+        r'(?:\.{3,}|…{2,})\s*\d{1,4}\s*$')
 
     starts = []
     for i, line in enumerate(lines):
@@ -505,9 +472,9 @@ def parse_articles(full_text: str) -> Tuple[List[Dict], List[str]]:
         m = hdr_titled.match(s)
         if m and len(m.group(2).strip()) < 150:
             starts.append(
-                (i, m.group(1).strip(), m.group(2).strip()))
+                (i, m.group(1).strip(),
+                 m.group(2).strip()))
 
-    # Fallback
     if not starts:
         hdr_relax = re.compile(
             r'^\s*(?:Član|ČLAN|Neni|NENI)\s*[:\s]*'
@@ -523,16 +490,14 @@ def parse_articles(full_text: str) -> Tuple[List[Dict], List[str]]:
                     (i, m.group(1).strip(),
                      m.group(2).strip()))
         if starts:
-            warnings.append("Korišćen relaksirani pattern.")
+            warnings.append("Relaksirani pattern.")
 
     if not starts:
-        warnings.append(
-            "Nije pronađena struktura članova."
-            " Ceo tekst kao jedan blok.")
+        warnings.append("Nema članova. Jedan blok.")
         return [{
             "article_number": "0",
             "paragraph_number": "",
-            "title": "(Neparsirani tekst)",
+            "title": "(Ceo tekst)",
             "content": text[:10000]
         }], warnings
 
@@ -543,7 +508,6 @@ def parse_articles(full_text: str) -> Tuple[List[Dict], List[str]]:
         c_end = (starts[idx + 1][0]
                  if idx + 1 < len(starts) else len(lines))
         c_lines = lines[c_start:c_end]
-
         title = htitle
         body_start = 0
         if not title and c_lines:
@@ -555,43 +519,19 @@ def parse_articles(full_text: str) -> Tuple[List[Dict], List[str]]:
                     and len(c_lines) > 1):
                 title = first
                 body_start = 1
-
         body = '\n'.join(c_lines[body_start:]).strip()
         if not body and title:
             body = title
             title = ""
-        if not body:
-            continue
+        if body:
+            articles.append({
+                "article_number": num,
+                "paragraph_number": "",
+                "title": title,
+                "content": body})
 
-        articles.append({
-            "article_number": num,
-            "paragraph_number": "",
-            "title": title,
-            "content": body
-        })
-
-    # Validacija
     if len(starts) < 3:
-        warnings.append(
-            f"Samo {len(starts)} članova pronađeno.")
-    empty = sum(1 for a in articles if len(a["content"]) < 10)
-    if articles and empty > len(articles) * 0.3:
-        warnings.append(
-            f"{empty}/{len(articles)} članova kratko.")
-    nums = set(a['article_number'] for a in articles)
-    max_n = 0
-    for a in articles:
-        try:
-            n = int(re.match(
-                r'(\d+)', a['article_number']).group(1))
-            max_n = max(max_n, n)
-        except Exception:
-            pass
-    if max_n > 0 and len(nums) > max_n * 1.3:
-        warnings.append(
-            f"{len(nums)} članova, ali max broj {max_n}."
-            " Proverite tekst.")
-
+        warnings.append(f"Samo {len(starts)} članova.")
     return articles, warnings
 
 
@@ -602,26 +542,27 @@ def save_law_to_db(name_sr, name_al, short_name,
     try:
         articles, warnings = parse_articles(full_text)
         with get_db() as conn:
-            conn.execute("""
-                INSERT INTO laws (name_sr, name_al,
-                short_name, law_number, area, gazette_info,
-                effective_date, language, full_text,
-                hierarchy_level) VALUES(?,?,?,?,?,?,?,?,?,?)
-            """, (name_sr, name_al, short_name, law_number,
-                  area, gazette_info, effective_date,
-                  language, full_text, hierarchy_level))
+            conn.execute(
+                "INSERT INTO laws (name_sr,name_al,"
+                "short_name,law_number,area,gazette_info,"
+                "effective_date,language,full_text,"
+                "hierarchy_level)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (name_sr, name_al, short_name, law_number,
+                 area, gazette_info, effective_date,
+                 language, full_text, hierarchy_level))
             law_id = conn.execute(
                 "SELECT last_insert_rowid()").fetchone()[0]
             for art in articles:
-                conn.execute("""
-                    INSERT INTO law_articles
-                    (law_id, article_number,
-                    paragraph_number, title, content)
-                    VALUES(?,?,?,?,?)
-                """, (law_id, art["article_number"],
-                      art.get("paragraph_number", ""),
-                      art.get("title", ""),
-                      art["content"]))
+                conn.execute(
+                    "INSERT INTO law_articles"
+                    " (law_id,article_number,"
+                    "paragraph_number,title,content)"
+                    " VALUES(?,?,?,?,?)",
+                    (law_id, art["article_number"],
+                     art.get("paragraph_number", ""),
+                     art.get("title", ""),
+                     art["content"]))
             st.session_state.law_vs = None
             st.session_state.law_vs_version = ""
             return law_id, len(articles), warnings
@@ -629,30 +570,29 @@ def save_law_to_db(name_sr, name_al, short_name,
         return None, 0, [f"Greška: {e}"]
 
 
-def reparse_law(law_id: int) -> Tuple[int, List[str]]:
-    """Ponovo parsira zakon iz sačuvanog full_text."""
+def reparse_law(law_id):
     try:
         with get_db() as conn:
             law = conn.execute(
                 "SELECT full_text FROM laws WHERE id=?",
                 (law_id,)).fetchone()
             if not law:
-                return 0, ["Zakon nije pronađen."]
+                return 0, ["Nije pronađen."]
             conn.execute(
                 "DELETE FROM law_articles WHERE law_id=?",
                 (law_id,))
             articles, warnings = parse_articles(
                 law["full_text"])
             for art in articles:
-                conn.execute("""
-                    INSERT INTO law_articles
-                    (law_id, article_number,
-                    paragraph_number, title, content)
-                    VALUES(?,?,?,?,?)
-                """, (law_id, art["article_number"],
-                      art.get("paragraph_number", ""),
-                      art.get("title", ""),
-                      art["content"]))
+                conn.execute(
+                    "INSERT INTO law_articles"
+                    " (law_id,article_number,"
+                    "paragraph_number,title,content)"
+                    " VALUES(?,?,?,?,?)",
+                    (law_id, art["article_number"],
+                     art.get("paragraph_number", ""),
+                     art.get("title", ""),
+                     art["content"]))
             st.session_state.law_vs = None
             st.session_state.law_vs_version = ""
             return len(articles), warnings
@@ -660,8 +600,7 @@ def reparse_law(law_id: int) -> Tuple[int, List[str]]:
         return 0, [f"Greška: {e}"]
 
 
-def export_laws_json() -> str:
-    """Izvozi sve zakone kao JSON string."""
+def export_laws_json():
     try:
         with get_db() as conn:
             laws = conn.execute(
@@ -669,25 +608,22 @@ def export_laws_json() -> str:
             ).fetchall()
             result = []
             for law in laws:
-                law = dict(law)
+                ld = dict(law)
                 arts = conn.execute(
-                    "SELECT article_number, paragraph_number,"
-                    " title, content FROM law_articles"
-                    " WHERE law_id=?"
+                    "SELECT article_number,title,content"
+                    " FROM law_articles WHERE law_id=?"
                     " ORDER BY CAST(article_number"
-                    " AS INTEGER)",
-                    (law["id"],)).fetchall()
-                law["articles"] = [dict(a) for a in arts]
-                del law["full_text"]
-                result.append(law)
-        return json.dumps(
-            result, ensure_ascii=False, indent=2)
+                    " AS INTEGER)", (ld["id"],)).fetchall()
+                ld["articles"] = [dict(a) for a in arts]
+                ld.pop("full_text", None)
+                result.append(ld)
+        return json.dumps(result, ensure_ascii=False, indent=2)
     except Exception as e:
         return json.dumps({"error": str(e)})
 
 
 # ═══════════════════════════════════════════════════════════════
-#  VEKTORSKA PRETRAGA
+#  VEKTORSKA PRETRAGA ZAKONA
 # ═══════════════════════════════════════════════════════════════
 
 def get_law_vs_version():
@@ -698,8 +634,7 @@ def get_law_vs_version():
             ).fetchone()[0]
             l = conn.execute(
                 "SELECT MAX(created_at)"
-                " FROM law_articles"
-            ).fetchone()[0] or ""
+                " FROM law_articles").fetchone()[0] or ""
             return f"{c}_{l}"
     except Exception:
         return "0_"
@@ -710,44 +645,38 @@ def build_law_vector_store():
         return None
     try:
         with get_db() as conn:
-            rows = conn.execute("""
-                SELECT la.article_number,
-                       la.paragraph_number,
-                       la.title, la.content,
-                       l.name_sr, l.short_name,
-                       l.law_number, l.area,
-                       l.hierarchy_level
-                FROM law_articles la
-                JOIN laws l ON la.law_id = l.id
-                WHERE l.is_active = 1
-            """).fetchall()
+            rows = conn.execute(
+                "SELECT la.article_number,"
+                "la.paragraph_number,la.title,la.content,"
+                "l.name_sr,l.short_name,l.law_number,"
+                "l.area,l.hierarchy_level"
+                " FROM law_articles la"
+                " JOIN laws l ON la.law_id=l.id"
+                " WHERE l.is_active=1").fetchall()
         if not rows:
             return None
         docs = []
         for row in rows:
-            row = dict(row)
-            src = row.get('short_name') or row['name_sr']
-            ref = f"Član {row['article_number']}"
-            if row.get('paragraph_number'):
-                ref += f" st.{row['paragraph_number']}"
-            hl = row.get('hierarchy_level', 3)
+            r = dict(row)
+            src = r.get('short_name') or r['name_sr']
+            ref = f"Član {r['article_number']}"
+            hl = r.get('hierarchy_level', 3)
             hi = HIERARCHY_LEVELS.get(hl, HIERARCHY_LEVELS[3])
             txt = f"{hi['name']}: {src} {ref}"
-            if row.get('title'):
-                txt += f" {row['title']}"
-            txt += f"\n{row['content']}"
+            if r.get('title'):
+                txt += f" {r['title']}"
+            txt += f"\n{r['content']}"
             docs.append(Document(
-                page_content=txt,
-                metadata={
-                    "article_number": row['article_number'],
-                    "paragraph_number": row.get(
+                page_content=txt, metadata={
+                    "article_number": r['article_number'],
+                    "paragraph_number": r.get(
                         'paragraph_number', ''),
-                    "title": row.get('title', ''),
-                    "content": row['content'],
-                    "name_sr": row['name_sr'],
-                    "short_name": row.get('short_name', ''),
-                    "law_number": row.get('law_number', ''),
-                    "area": row.get('area', ''),
+                    "title": r.get('title', ''),
+                    "content": r['content'],
+                    "name_sr": r['name_sr'],
+                    "short_name": r.get('short_name', ''),
+                    "law_number": r.get('law_number', ''),
+                    "area": r.get('area', ''),
                     "hierarchy_level": hl}))
         sp = RecursiveCharacterTextSplitter(
             chunk_size=1000, chunk_overlap=200)
@@ -816,13 +745,10 @@ def search_laws(query, max_results=15):
         'je', 'su', 'da', 'li', 'se', 'na', 'u', 'i',
         'za', 'od', 'sa', 'po', 'ne', 'ni', 'što', 'šta',
         'kako', 'koji', 'koja', 'koje', 'ko', 'ako', 'ali',
-        'ili', 'kad', 'kada', 'gde', 'iz', 'do', 'bi', 'mi',
-        'ti', 'on', 'ona', 'oni', 'vi', 'taj', 'ta', 'to',
-        'ovo', 'može', 'mora', 'treba', 'prema', 'biti',
-        'bude', 'sam', 'jedan', 'neki', 'sve', 'svi', 'svoj',
-        'ima', 'nema', 'radi', 'kaže', 'član', 'stav',
-        'zakon', 'pravo', 'pravni', 'molim', 'pitanje',
-    }
+        'ili', 'kad', 'gde', 'iz', 'do', 'bi', 'može',
+        'mora', 'treba', 'prema', 'biti', 'bude', 'sam',
+        'jedan', 'neki', 'sve', 'član', 'stav', 'zakon',
+        'pravo', 'pravni', 'molim', 'pitanje'}
     words = re.findall(r'[a-zA-ZčćžšđČĆŽŠĐ]+', q)
     kws = [w for w in words if len(w) > 2 and w not in stop]
 
@@ -832,7 +758,6 @@ def search_laws(query, max_results=15):
     t_art = am.group(1) if am else None
     t_laws = detect_target_law(query)
     t_areas = detect_legal_area(query)
-
     rd = {}
 
     def add(r, base):
@@ -849,13 +774,13 @@ def search_laws(query, max_results=15):
 
     try:
         with get_db() as conn:
-            bq = """SELECT la.article_number,
-                la.paragraph_number, la.title, la.content,
-                l.name_sr, l.short_name, l.law_number,
-                l.area, l.hierarchy_level
-                FROM law_articles la
-                JOIN laws l ON la.law_id=l.id
-                WHERE l.is_active=1"""
+            bq = ("SELECT la.article_number,"
+                  "la.paragraph_number,la.title,la.content,"
+                  "l.name_sr,l.short_name,l.law_number,"
+                  "l.area,l.hierarchy_level"
+                  " FROM law_articles la"
+                  " JOIN laws l ON la.law_id=l.id"
+                  " WHERE l.is_active=1")
 
             if t_art and t_laws:
                 for ln in t_laws:
@@ -866,7 +791,6 @@ def search_laws(query, max_results=15):
                             (t_art, f"%{ln}%",
                              f"%{ln}%")).fetchall():
                         add(dict(r), 200)
-
             if t_art:
                 for r in conn.execute(
                         bq + " AND la.article_number=?",
@@ -874,7 +798,6 @@ def search_laws(query, max_results=15):
                     d = dict(r)
                     ab = 50 if d.get('area') in t_areas else 0
                     add(d, 150 + ab)
-
             if t_laws and kws:
                 for ln in t_laws:
                     for kw in kws[:6]:
@@ -892,7 +815,6 @@ def search_laws(query, max_results=15):
                                      if k in
                                      d['content'].lower())
                             add(d, 100 + kc * 10)
-
             if kws and t_areas:
                 for kw in kws[:5]:
                     for area in t_areas[:2]:
@@ -908,19 +830,16 @@ def search_laws(query, max_results=15):
                                      if k in
                                      d['content'].lower())
                             add(d, 60 + kc * 10)
-
             if kws:
                 for kw in kws[:5]:
                     for r in conn.execute(
                             bq + " AND (la.content LIKE ?"
-                            " OR la.title LIKE ?)"
-                            " LIMIT 8",
+                            " OR la.title LIKE ?) LIMIT 8",
                             (f"%{kw}%",
                              f"%{kw}%")).fetchall():
                         d = dict(r)
                         kc = sum(1 for k in kws
-                                 if k in
-                                 d['content'].lower())
+                                 if k in d['content'].lower())
                         ab = (15 if d.get('area')
                               in t_areas else 0)
                         add(d, 20 + kc * 10 + ab)
@@ -935,38 +854,22 @@ def search_laws(query, max_results=15):
                 m = doc.metadata
                 if dist < 1.3:
                     sc = max(5, int(85 * (1 - dist / 1.3)))
-                    r = {
-                        'article_number': m.get(
-                            'article_number', ''),
-                        'paragraph_number': m.get(
-                            'paragraph_number', ''),
-                        'title': m.get('title', ''),
-                        'content': m.get(
-                            'content', doc.page_content),
-                        'name_sr': m.get('name_sr', ''),
-                        'short_name': m.get(
-                            'short_name', ''),
-                        'law_number': m.get(
-                            'law_number', ''),
-                        'area': m.get('area', ''),
-                        'hierarchy_level': m.get(
-                            'hierarchy_level', 3)}
+                    r = {k: m.get(k, '') for k in [
+                        'article_number', 'paragraph_number',
+                        'title', 'content', 'name_sr',
+                        'short_name', 'law_number', 'area',
+                        'hierarchy_level']}
+                    if not r['content']:
+                        r['content'] = doc.page_content
                     if t_areas and r.get('area') in t_areas:
                         sc += 15
-                    if t_laws:
-                        for tl in t_laws:
-                            if tl.lower() in r.get(
-                                    'name_sr', '').lower():
-                                sc += 20
-                                break
                     add(r, sc)
         except Exception:
             pass
 
-    res = sorted(rd.values(),
-                 key=lambda x: x.get('score', 0),
-                 reverse=True)
-    return res[:max_results]
+    return sorted(rd.values(),
+                  key=lambda x: x.get('score', 0),
+                  reverse=True)[:max_results]
 
 
 def format_results(results):
@@ -978,8 +881,6 @@ def format_results(results):
         ln = f" ({r['law_number']})" \
             if r.get('law_number') else ""
         art = f"Član {r['article_number']}"
-        if r.get('paragraph_number'):
-            art += f", stav {r['paragraph_number']}"
         ttl = f" — {r['title']}" if r.get('title') else ""
         hl = r.get('hierarchy_level', 3)
         hi = HIERARCHY_LEVELS.get(hl, HIERARCHY_LEVELS[3])
@@ -990,8 +891,7 @@ def format_results(results):
             f"{r['content']}\n[KRAJ #{i+1}]")
     allowed = sorted(set(
         f"{r.get('short_name') or r['name_sr']},"
-        f" Član {r['article_number']}"
-        for r in results))
+        f" Član {r['article_number']}" for r in results))
     parts.append(
         "\n═══ DOZVOLJENI CITATI ═══\n"
         "SMEŠ citirati ISKLJUČIVO:\n"
@@ -1020,8 +920,7 @@ def verify_citations(resp, results):
     if bad:
         resp += (
             f"\n\n⚠️ **UPOZORENJE:** AI pomenuo"
-            f" Član {', '.join(bad)} koji nisu"
-            f" među izvorima.")
+            f" Član {', '.join(bad)} — nisu među izvorima.")
     return resp
 
 
@@ -1033,9 +932,6 @@ def render_sources_html(results):
     for r in results[:8]:
         src = r.get('short_name') or r['name_sr']
         art = f"Član {r['article_number']}"
-        if r.get('paragraph_number'):
-            art += f", st. {r['paragraph_number']}"
-        ttl = f" — {r['title']}" if r.get('title') else ""
         k = f"{src}|{art}"
         if k in shown:
             continue
@@ -1045,19 +941,19 @@ def render_sources_html(results):
         sn = r['content'][:200]
         if len(r['content']) > 200:
             sn += "..."
+        ttl = f" — {r['title']}" if r.get('title') else ""
         parts.append(
             f'<div style="background:white;'
-            f'border-left:3px solid #C5962C;'
+            f'border-left:3px solid {GOLD};'
             f'border-radius:0 12px 12px 0;'
             f'padding:10px 14px;margin:6px 0;'
             f'font-size:.85rem;">'
-            f'<div style="font-weight:600;'
-            f'color:#0A1628;">'
-            f'{hi["icon"]} {src}: {art}{ttl}</div>'
+            f'<b>{hi["icon"]} {src}: {art}{ttl}</b>'
             f'<div style="color:#888;font-size:.7rem;">'
-            f'Pravna snaga: {hi["name"]}</div>'
-            f'<div style="color:#6B7280;margin-top:4px;'
-            f'font-size:.8rem;">{sn}</div></div>')
+            f'{hi["name"]}</div>'
+            f'<div style="color:{TEXT_MUTED};'
+            f'margin-top:4px;font-size:.8rem;">'
+            f'{sn}</div></div>')
     parts.append('</div>')
     return ''.join(parts)
 
@@ -1069,8 +965,8 @@ PRAVILA:
 2. Za svaku tvrdnju citiraj: "Prema [Zakon], član X..."
 3. Citiraj SAMO iz sekcije DOZVOLJENI CITATI.
 4. Ako nema odgovora: "Na osnovu zakona u bazi, ne postoje odredbe."
-5. Samo zakoni Kosova. Za drugu državu: "Sistem sadrži samo zakone Kosova."
-6. Hijerarhija: 👑USTAV > 🌍MEĐUNARODNI > 📜ZAKON > 📋PODZAKONSKI > 🏘️OPŠTINSKI
+5. Samo Kosovo. Za drugu državu: "Sistem sadrži samo zakone Kosova."
+6. Hijerarhija: 👑USTAV > 🌍MEĐUNARODNI > 📜ZAKON > 📋PODZAKONSKI
 
 FORMAT:
 ## Odgovor
@@ -1084,15 +980,13 @@ FORMAT:
 
 ═══ ČLANOVI ═══
 {law_context}
-
 ═══ DOKUMENTI ═══
 {doc_context}
-
 ═══ PITANJE ═══
 {question}"""
 
 
-def query_ai(question, vector_store=None):
+def query_ai(question, case_doc_vs=None):
     ji = detect_jurisdiction_issue(question)
     tl = detect_target_law(question)
     missing = []
@@ -1117,9 +1011,9 @@ def query_ai(question, vector_store=None):
     conf = determine_confidence(results, question)
 
     doc_ctx = "(Nema dokumenata.)"
-    if vector_store:
+    if case_doc_vs:
         try:
-            ds = vector_store.as_retriever(
+            ds = case_doc_vs.as_retriever(
                 search_kwargs={"k": 4}).invoke(question)
             if ds:
                 doc_ctx = "\n---\n".join(
@@ -1130,24 +1024,18 @@ def query_ai(question, vector_store=None):
 
     if missing and not results:
         ans = (
-            f"## Odgovor\n"
-            f"Zakon(i) {', '.join(missing)}"
+            f"## Odgovor\n{', '.join(missing)}"
             f" nisu u bazi.\n\n"
-            f"## Obrazloženje\n"
-            f"Sistem odgovara samo iz unetih zakona.\n\n"
             f"## Korišćeni izvori\nNijedan.\n\n"
             f"## Napomena\nKontaktirajte admina.")
         if ji:
             ans += f"\n\n⚠️ '{ji}' — druga država."
         return ans, "INSUFFICIENT_SOURCES", results
 
-    if conf == "INSUFFICIENT_SOURCES" and not vector_store:
-        ans = (
-            "## Odgovor\nNisam pronašao odredbe.\n\n"
-            "## Obrazloženje\n"
-            "Nema relevantnih rezultata.\n\n"
-            "## Korišćeni izvori\nNijedan.\n\n"
-            "## Napomena\nKonsultujte advokata.")
+    if conf == "INSUFFICIENT_SOURCES" and not case_doc_vs:
+        ans = ("## Odgovor\nNisam pronašao odredbe.\n\n"
+               "## Korišćeni izvori\nNijedan.\n\n"
+               "## Napomena\nKonsultujte advokata.")
         if missing:
             ans += f"\n\n⚠️ {', '.join(missing)} — nije u bazi."
         if ji:
@@ -1158,14 +1046,11 @@ def query_ai(question, vector_store=None):
     if ji:
         extra += f"\nVAŽNO: '{ji}' — samo Kosovo."
     if missing:
-        extra += (
-            f"\nVAŽNO: {', '.join(missing)}"
-            f" NIJE u bazi.")
+        extra += f"\nVAŽNO: {', '.join(missing)} NIJE u bazi."
 
     prompt = SYSTEM_PROMPT.format(
         law_context=ctx, doc_context=doc_ctx,
         question=question + extra)
-
     try:
         llm = ChatOpenAI(
             model="gpt-4o-mini", api_key=OPENAI_API_KEY,
@@ -1177,11 +1062,146 @@ def query_ai(question, vector_store=None):
             "GROUNDED": "🟢 UTEMELJEN",
             "PARTIALLY_GROUNDED": "🟡 DELIMIČNO",
             "INSUFFICIENT_SOURCES": "🔴 NEDOVOLJNO"}
-        ans += f"\n\n---\n**Pouzdanost:** {labels.get(conf, '')}"
+        ans += f"\n\n---\n**Pouzdanost:** {labels.get(conf,'')}"
         return ans, conf, results
     except Exception as e:
         return f"⚠️ {e}", "INSUFFICIENT_SOURCES", results
-     # ═══════════════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════════════
+#  PREDMETI (CASES) + DOKUMENTI
+# ═══════════════════════════════════════════════════════════════
+
+def create_case(user_id, title):
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO cases (owner_id,title)"
+            " VALUES(?,?)", (user_id, title))
+        return conn.execute(
+            "SELECT last_insert_rowid()").fetchone()[0]
+
+
+def get_user_cases(user_id):
+    with get_db() as conn:
+        return conn.execute(
+            "SELECT * FROM cases WHERE owner_id=?"
+            " ORDER BY created_at DESC",
+            (user_id,)).fetchall()
+
+
+def delete_case(case_id, user_id):
+    with get_db() as conn:
+        conn.execute(
+            "DELETE FROM case_messages WHERE case_id=?",
+            (case_id,))
+        conn.execute(
+            "DELETE FROM case_documents WHERE case_id=?",
+            (case_id,))
+        conn.execute(
+            "DELETE FROM cases WHERE id=? AND owner_id=?",
+            (case_id, user_id))
+    if st.session_state.get("active_case_id") == case_id:
+        st.session_state.active_case_id = None
+    if st.session_state.get("case_doc_vs_id") == case_id:
+        st.session_state.case_doc_vs = None
+        st.session_state.case_doc_vs_id = None
+
+
+def get_case_messages(case_id):
+    with get_db() as conn:
+        return conn.execute(
+            "SELECT role,content,sources_html,confidence"
+            " FROM case_messages WHERE case_id=?"
+            " ORDER BY created_at",
+            (case_id,)).fetchall()
+
+
+def save_case_message(case_id, role, content,
+                      sources_html="", confidence=""):
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO case_messages"
+            " (case_id,role,content,sources_html,confidence)"
+            " VALUES(?,?,?,?,?)",
+            (case_id, role, content,
+             sources_html, confidence))
+
+
+def add_case_document(case_id, filename,
+                      text_content, language="sr"):
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO case_documents"
+            " (case_id,filename,text_content,language)"
+            " VALUES(?,?,?,?)",
+            (case_id, filename, text_content, language))
+    if st.session_state.get("case_doc_vs_id") == case_id:
+        st.session_state.case_doc_vs = None
+        st.session_state.case_doc_vs_id = None
+
+
+def get_case_documents(case_id):
+    with get_db() as conn:
+        return conn.execute(
+            "SELECT id,filename,language,"
+            "LENGTH(text_content) as size,created_at"
+            " FROM case_documents WHERE case_id=?"
+            " ORDER BY created_at",
+            (case_id,)).fetchall()
+
+
+def delete_case_document(doc_id, case_id):
+    with get_db() as conn:
+        conn.execute(
+            "DELETE FROM case_documents"
+            " WHERE id=? AND case_id=?",
+            (doc_id, case_id))
+    if st.session_state.get("case_doc_vs_id") == case_id:
+        st.session_state.case_doc_vs = None
+        st.session_state.case_doc_vs_id = None
+
+
+def build_case_doc_vs(case_id):
+    if not OPENAI_API_KEY:
+        return None
+    try:
+        with get_db() as conn:
+            docs = conn.execute(
+                "SELECT filename,text_content"
+                " FROM case_documents WHERE case_id=?",
+                (case_id,)).fetchall()
+        if not docs:
+            return None
+        sp = RecursiveCharacterTextSplitter(
+            chunk_size=1500, chunk_overlap=300)
+        all_d = []
+        for d in docs:
+            for chunk in sp.split_text(d["text_content"]):
+                all_d.append(Document(
+                    page_content=chunk,
+                    metadata={"source": d["filename"]}))
+        if not all_d:
+            return None
+        return FAISS.from_documents(
+            all_d, OpenAIEmbeddings(
+                model="text-embedding-3-small",
+                api_key=OPENAI_API_KEY))
+    except Exception:
+        return None
+
+
+def get_case_doc_vs(case_id):
+    if (st.session_state.get("case_doc_vs_id") == case_id
+            and st.session_state.get(
+                "case_doc_vs") is not None):
+        return st.session_state.case_doc_vs
+    vs = build_case_doc_vs(case_id)
+    st.session_state.case_doc_vs = vs
+    st.session_state.case_doc_vs_id = case_id
+    return vs
+
+
+# ═══════════════════════════════════════════════════════════════
 #  POMOĆNE FUNKCIJE
 # ═══════════════════════════════════════════════════════════════
 
@@ -1262,12 +1282,9 @@ def detect_language(text):
     s = text.lower()[:2000]
     if len(re.findall(r'[а-яА-Я]', s)) > len(s) * 0.1:
         return "sr"
-    al = sum(1 for m in [
-        'është', 'dhe', 'për', 'nga', 'në'] if m in s)
-    en = sum(1 for m in [
-        'the', 'and', 'for', 'that', 'court'] if m in s)
-    sr = sum(1 for m in [
-        ' je ', ' su ', ' ili ', 'zakon'] if m in s)
+    al = sum(1 for m in ['është', 'dhe', 'për'] if m in s)
+    en = sum(1 for m in ['the', 'and', 'for'] if m in s)
+    sr = sum(1 for m in [' je ', ' su ', 'zakon'] if m in s)
     sc = {"al": al, "en": en, "sr": sr}
     b = max(sc, key=sc.get)
     return b if sc[b] >= 2 else "sr"
@@ -1284,48 +1301,58 @@ def extract_pdf(file):
         return ""
 
 
-def process_file(file):
-    n = file.name
-    if n.lower().endswith('.pdf'):
-        t = extract_pdf(file)
-    elif n.lower().endswith('.txt'):
+def ocr_image(image_bytes):
+    b64 = base64.b64encode(image_bytes).decode('utf-8')
+    try:
+        client = openai.OpenAI(api_key=OPENAI_API_KEY)
+        r = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": [
+                {"type": "text",
+                 "text": "Izvuci KOMPLETAN tekst sa slike."},
+                {"type": "image_url",
+                 "image_url": {
+                     "url": f"data:image/jpeg;base64,{b64}"
+                 }}]}],
+            max_tokens=4096)
+        return r.choices[0].message.content
+    except Exception as e:
+        return f"⚠️ OCR: {e}"
+
+
+def process_upload(file):
+    """Procesira fajl za predmet. Vraća (text, name, lang)."""
+    name = file.name
+    ext = name.lower().rsplit('.', 1)[-1] if '.' in name else ''
+    if ext == 'pdf':
+        text = extract_pdf(file)
+    elif ext == 'txt':
         raw = file.read()
-        t = ""
+        text = ""
         for enc in ['utf-8', 'latin-1', 'cp1250']:
             try:
-                t = raw.decode(enc)
+                text = raw.decode(enc)
                 break
             except Exception:
                 continue
-        if not t:
-            t = raw.decode('utf-8', errors='replace')
+        if not text:
+            text = raw.decode('utf-8', errors='replace')
+    elif ext in ('jpg', 'jpeg', 'png', 'gif', 'webp'):
+        img = Image.open(file).convert("RGB")
+        if img.width > 2000:
+            img = img.resize(
+                (2000, int(img.height * 2000 / img.width)),
+                Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=85)
+        text = ocr_image(buf.getvalue())
     else:
-        return "", "", ""
-    return t, n, detect_language(t) if t else "sr"
-
-
-def build_vs(docs_data, api_key):
-    sp = RecursiveCharacterTextSplitter(
-        chunk_size=1500, chunk_overlap=300)
-    all_d = []
-    for d in docs_data:
-        if not d.get("text"):
-            continue
-        for c in sp.split_text(d["text"]):
-            all_d.append(Document(
-                page_content=c,
-                metadata={"source": d["name"]}))
-    if not all_d:
-        return None
-    return FAISS.from_documents(
-        all_d, OpenAIEmbeddings(
-            model="text-embedding-3-small",
-            api_key=api_key))
+        return "", name, "sr"
+    lang = detect_language(text) if text else "sr"
+    return text, name, lang
 
 
 def translate_full(text, lang):
-    ln = {"al": "albanski", "en": "engleski"}.get(
-        lang, "nepoznat")
     if lang == "sr":
         return text
     llm = get_llm(temp=0.05, tokens=8000)
@@ -1383,9 +1410,31 @@ def create_word(title, body):
     return buf
 
 
+def create_stripe_checkout(plan_key, user_email):
+    """Kreira Stripe checkout URL. Vraća URL ili None."""
+    if not STRIPE_AVAILABLE or not STRIPE_SECRET_KEY:
+        return None
+    plan = PLANS.get(plan_key)
+    if not plan or not plan.get("stripe_price"):
+        return None
+    try:
+        stripe_lib.api_key = STRIPE_SECRET_KEY
+        session = stripe_lib.checkout.Session.create(
+            payment_method_types=["card"],
+            customer_email=user_email,
+            line_items=[{
+                "price": plan["stripe_price"],
+                "quantity": 1}],
+            mode="subscription",
+            success_url=STRIPE_SUCCESS_URL,
+            cancel_url=STRIPE_CANCEL_URL)
+        return session.url
+    except Exception:
+        return None
+
+
 LEGAL_DICT = {
     "Gjykata Themelore": "Osnovni sud",
-    "Gjykata e Apelit": "Apelacioni sud",
     "Vendim": "Odluka", "Aktvendim": "Rešenje",
     "Ankesë": "Žalba", "Ligj": "Zakon",
     "Neni": "Član", "Afat": "Rok",
@@ -1405,8 +1454,6 @@ DOC_TEMPLATES = {
                   "prompt": "Napiši punomoćje SR+AL."
                             " Info:\n{info}"},
 }
-
-
 # ═══════════════════════════════════════════════════════════════
 #  CSS
 # ═══════════════════════════════════════════════════════════════
@@ -1428,24 +1475,24 @@ body,p,h1,h2,h3,h4,h5,h6,span,div,input,textarea,button,label,a{{font-family:'In
 .top-bar .gold{{color:{GOLD}}}
 .badge{{background:rgba(255,255,255,.15);padding:4px 12px;border-radius:20px;font-weight:500;font-size:.8rem}}
 .badge-gold{{background:{GOLD};color:{NAVY};font-weight:700}}
-.badge-warn{{background:{WARNING};color:white}}
-.badge-err{{background:{ERROR};color:white}}
+.badge-warn{{background:{WARNING_C};color:white}}
+.badge-err{{background:{ERROR_C};color:white}}
 .pk-card{{background:{CARD_BG};border-radius:20px;padding:1.75rem;margin:.75rem 0;box-shadow:0 1px 4px rgba(0,0,0,.06)}}
 .pk-card-gold{{background:{CARD_BG};border-radius:20px;padding:1.75rem;margin:.75rem 0;border-left:4px solid {GOLD}}}
 .pk-card h3,.pk-card-gold h3{{font-family:'Playfair Display',serif!important;color:{NAVY};margin-top:0}}
 .metric-box{{background:{CARD_BG};border-radius:16px;padding:1.25rem;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}}
 .metric-box .num{{font-family:'Playfair Display',serif!important;font-size:2rem;font-weight:700;color:{NAVY}}}
 .metric-box .lbl{{font-size:.8rem;color:{TEXT_MUTED}}}
+.law-item{{background:{CARD_BG};border-radius:14px;padding:1rem 1.25rem;margin:.5rem 0;border:1px solid #E5E7EB}}
 .stButton>button{{border-radius:12px!important;font-weight:600!important;border:none!important;background:{NAVY}!important;color:white!important}}
 .stButton>button:hover{{background:{NAVY_MID}!important}}
 .stTextInput>div>div>input,.stTextArea>div>div>textarea{{border-radius:12px!important;border:2px solid #E5E7EB!important}}
-.stTextInput>div>div>input:focus,.stTextArea>div>div>textarea:focus{{border-color:{GOLD}!important}}
 .stTabs [data-baseweb="tab-list"]{{gap:4px;background:{CARD_BG};border-radius:14px;padding:4px}}
 .stTabs [data-baseweb="tab"]{{border-radius:10px!important;font-weight:500!important}}
 .stTabs [aria-selected="true"]{{background:{NAVY}!important;color:white!important}}
 .stFileUploader>div{{border-radius:16px!important;border:2px dashed {GOLD_LIGHT}!important;background:{GOLD_PALE}!important}}
 [data-testid="stChatMessage"]{{border-radius:16px!important}}
-@media(max-width:768px){{.top-bar{{padding:.75rem 1rem}}.top-bar h2{{font-size:1rem}}.pk-card,.pk-card-gold{{padding:1.25rem}}}}
+@media(max-width:768px){{.top-bar{{padding:.75rem 1rem}}.top-bar h2{{font-size:1rem}}}}
 </style>
 """
 
@@ -1461,8 +1508,6 @@ def render_login():
         '<h1>Prava Kolevka</h1>'
         '<p>Pravni AI za Kosovo</p>'
         '</div></div>', unsafe_allow_html=True)
-    if not BCRYPT_AVAILABLE:
-        st.warning("⚠️ bcrypt nije instaliran.")
     _, col, _ = st.columns([1, 2, 1])
     with col:
         with st.form("login", clear_on_submit=False):
@@ -1515,7 +1560,9 @@ def check_session_timeout():
         return False
     return ((datetime.now() - lt).total_seconds() / 60
             > SESSION_TIMEOUT_MINUTES)
- # ═══════════════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════════════
 #  ADMIN
 # ═══════════════════════════════════════════════════════════════
 
@@ -1587,44 +1634,36 @@ def admin_dashboard():
 def admin_laws():
     st.markdown("### 📜 Zakoni")
 
-    # ── DODAVANJE SA PREVIEW-OM ───────────────────────────────
     with st.expander("➕ Dodaj novi zakon", expanded=False):
         c1, c2 = st.columns(2)
         with c1:
             name_sr = st.text_input(
-                "Naziv *", placeholder="Krivični zakonik",
-                key="al_name")
-            name_al = st.text_input(
-                "Albanski", key="al_nameal")
+                "Naziv *", key="al_name")
             short = st.text_input(
-                "Skraćenica", placeholder="KZ",
-                key="al_short")
+                "Skraćenica", key="al_short")
             hlevel = st.selectbox(
-                "👑 Pravna snaga",
+                "Pravna snaga",
                 list(HIERARCHY_LEVELS.keys()), index=2,
                 format_func=lambda x: (
                     f"{HIERARCHY_LEVELS[x]['icon']}"
                     f" {HIERARCHY_LEVELS[x]['name']}"),
                 key="al_hl")
         with c2:
-            lawnum = st.text_input(
-                "Broj zakona", key="al_num")
+            lawnum = st.text_input("Broj", key="al_num")
             area = st.selectbox(
                 "Oblast", LEGAL_AREAS, key="al_area")
-            gazette = st.text_input(
-                "Sl. glasnik", key="al_gaz")
-            effdate = st.text_input(
-                "Datum", key="al_date")
+            name_al = st.text_input(
+                "Albanski", key="al_nameal")
         full_text = st.text_area(
-            "Tekst zakona *", height=400,
+            "Tekst *", height=400,
             placeholder="Član 1\nNaslov\n1. Tekst...",
             key="al_text")
 
-        col_prev, col_save = st.columns(2)
-        with col_prev:
+        pc, sc = st.columns(2)
+        with pc:
             if st.button("👁️ Preview",
-                         use_container_width=True,
-                         disabled=not full_text):
+                         disabled=not full_text,
+                         use_container_width=True):
                 arts, warns = parse_articles(full_text)
                 st.session_state.preview_articles = arts
                 st.session_state.preview_warnings = warns
@@ -1632,15 +1671,12 @@ def admin_laws():
                     "name_sr": name_sr, "name_al": name_al,
                     "short_name": short,
                     "law_number": lawnum, "area": area,
-                    "gazette_info": gazette,
-                    "effective_date": effdate,
                     "hierarchy_level": hlevel}
 
-        # Prikaz preview-a
         if st.session_state.preview_articles is not None:
             arts = st.session_state.preview_articles
             warns = st.session_state.preview_warnings
-            st.success(f"Pronađeno {len(arts)} članova")
+            st.success(f"✅ {len(arts)} članova")
             for w in (warns or []):
                 st.warning(f"⚠️ {w}")
             for a in arts[:5]:
@@ -1649,121 +1685,119 @@ def admin_laws():
                     f"**Čl. {a['article_number']}{t}:**"
                     f" {a['content'][:200]}...")
             if len(arts) > 5:
-                st.info(f"...i još {len(arts)-5} članova")
+                st.info(f"...i još {len(arts)-5}")
 
-            with col_save:
+            with sc:
                 if st.button("✅ Sačuvaj",
-                             use_container_width=True,
-                             disabled=not name_sr):
-                    meta = st.session_state.preview_meta
-                    lid, narts, ws = save_law_to_db(
-                        meta["name_sr"], meta["name_al"],
-                        meta["short_name"],
-                        meta["law_number"],
-                        meta["area"], meta["gazette_info"],
-                        meta["effective_date"], "sr",
-                        full_text,
-                        meta["hierarchy_level"])
+                             disabled=not name_sr,
+                             use_container_width=True):
+                    m = st.session_state.preview_meta
+                    lid, n, w = save_law_to_db(
+                        m["name_sr"], m["name_al"],
+                        m["short_name"], m["law_number"],
+                        m["area"], "", "", "sr",
+                        full_text, m["hierarchy_level"])
                     if lid:
-                        hi = HIERARCHY_LEVELS.get(
-                            meta["hierarchy_level"],
-                            HIERARCHY_LEVELS[3])
-                        st.success(
-                            f"✅ '{meta['name_sr']}'"
-                            f" — {narts} čl."
-                            f" {hi['icon']}")
+                        st.success(f"✅ {n} članova")
                         st.session_state.preview_articles \
-                            = None
-                        st.session_state.preview_warnings \
                             = None
                         st.session_state.preview_meta = None
                         st.rerun()
 
-    # ── EXPORT ────────────────────────────────────────────────
-    with st.expander("📦 Export / Backup"):
-        if st.button("📥 Izvezi sve zakone (JSON)"):
+    with st.expander("📦 Export"):
+        if st.button("📥 Izvezi sve (JSON)"):
             data = export_laws_json()
             st.download_button(
-                "💾 Preuzmi backup",
+                "💾 Preuzmi",
                 data=data,
-                file_name=f"laws_backup_{date.today()}.json",
+                file_name=f"backup_{date.today()}.json",
                 mime="application/json")
 
-    # ── LISTA ZAKONA ──────────────────────────────────────────
+    # ČIST PRIKAZ ZAKONA
     st.markdown("### 📋 Zakoni u bazi")
     try:
         with get_db() as conn:
             laws = conn.execute(
-                "SELECT l.*, COUNT(la.id) as num_articles"
-                " FROM laws l LEFT JOIN law_articles la"
+                "SELECT l.id, l.name_sr, l.short_name,"
+                " l.law_number, l.area, l.hierarchy_level,"
+                " COUNT(la.id) as num_articles"
+                " FROM laws l"
+                " LEFT JOIN law_articles la"
                 " ON l.id=la.law_id"
                 " GROUP BY l.id"
                 " ORDER BY l.hierarchy_level,"
-                " l.area, l.name_sr").fetchall()
+                " l.name_sr").fetchall()
     except Exception:
         laws = []
 
     if not laws:
-        st.warning("Nema zakona.")
-    else:
-        cur_lvl = None
-        for law in laws:
-            law = dict(law)
-            hl = law.get('hierarchy_level', 3)
-            hi = HIERARCHY_LEVELS.get(hl, HIERARCHY_LEVELS[3])
-            if hl != cur_lvl:
-                cur_lvl = hl
-                st.markdown(
-                    f"#### {hi['icon']} {hi['name']}")
-            with st.expander(
-                    f"{hi['icon']} {law['name_sr']}"
-                    f" ({law.get('law_number', '')})"
-                    f" — {law['num_articles']} čl."):
-                st.markdown(
-                    f"**Oblast:** {law.get('area', '')}"
-                    f" | **Skr:** {law.get('short_name', '')}"
-                    f" | **Snaga:** {hi['name']}")
-                try:
+        st.info("Nema zakona. Dodajte iznad.")
+        return
+
+    cur_lvl = None
+    for law in laws:
+        law = dict(law)
+        hl = law.get('hierarchy_level', 3)
+        hi = HIERARCHY_LEVELS.get(hl, HIERARCHY_LEVELS[3])
+
+        if hl != cur_lvl:
+            cur_lvl = hl
+            st.markdown(
+                f"#### {hi['icon']} {hi['name']}")
+
+        # Čist label bez ikona u expanderu
+        label = (f"{law['name_sr']}"
+                 f" — {law['num_articles']} čl.")
+        with st.expander(label):
+            st.markdown(
+                f"**Broj:** {law.get('law_number', '—')}"
+                f" &nbsp;|&nbsp; "
+                f"**Skraćenica:**"
+                f" {law.get('short_name', '—')}"
+                f" &nbsp;|&nbsp; "
+                f"**Oblast:** {law.get('area', '—')}"
+                f" &nbsp;|&nbsp; "
+                f"**Snaga:** {hi['icon']} {hi['name']}")
+            try:
+                with get_db() as conn:
+                    arts = conn.execute(
+                        "SELECT article_number,title,content"
+                        " FROM law_articles WHERE law_id=?"
+                        " ORDER BY CAST(article_number"
+                        " AS INTEGER) LIMIT 3",
+                        (law["id"],)).fetchall()
+                for a in arts:
+                    t = f" — {a['title']}" \
+                        if a['title'] else ""
+                    st.caption(
+                        f"Čl. {a['article_number']}{t}:"
+                        f" {a['content'][:120]}...")
+            except Exception:
+                pass
+            b1, b2 = st.columns(2)
+            with b1:
+                if st.button("🔄 Ponovo obradi",
+                             key=f"rep_{law['id']}"):
+                    n, w = reparse_law(law["id"])
+                    st.success(f"✅ {n} čl.")
+                    for ww in w:
+                        st.warning(f"⚠️ {ww}")
+                    st.rerun()
+            with b2:
+                if st.button("🗑️ Obriši",
+                             key=f"del_{law['id']}"):
                     with get_db() as conn:
-                        arts = conn.execute(
-                            "SELECT article_number,title,"
-                            "content FROM law_articles"
-                            " WHERE law_id=?"
-                            " ORDER BY CAST(article_number"
-                            " AS INTEGER) LIMIT 5",
-                            (law["id"],)).fetchall()
-                    for a in arts:
-                        t = f" — {a['title']}" \
-                            if a['title'] else ""
-                        st.caption(
-                            f"Čl. {a['article_number']}"
-                            f"{t}: {a['content'][:150]}...")
-                except Exception:
-                    pass
-                bc1, bc2 = st.columns(2)
-                with bc1:
-                    if st.button("🔄 Ponovo obradi",
-                                 key=f"rep_{law['id']}"):
-                        n, w = reparse_law(law["id"])
-                        st.success(f"Ponovo: {n} čl.")
-                        for ww in w:
-                            st.warning(f"⚠️ {ww}")
-                        st.rerun()
-                with bc2:
-                    if st.button("🗑️ Obriši",
-                                 key=f"del_{law['id']}"):
-                        with get_db() as conn:
-                            conn.execute(
-                                "DELETE FROM law_articles"
-                                " WHERE law_id=?",
-                                (law["id"],))
-                            conn.execute(
-                                "DELETE FROM laws"
-                                " WHERE id=?",
-                                (law["id"],))
-                        st.session_state.law_vs = None
-                        st.session_state.law_vs_version = ""
-                        st.rerun()
+                        conn.execute(
+                            "DELETE FROM law_articles"
+                            " WHERE law_id=?",
+                            (law["id"],))
+                        conn.execute(
+                            "DELETE FROM laws"
+                            " WHERE id=?",
+                            (law["id"],))
+                    st.session_state.law_vs = None
+                    st.session_state.law_vs_version = ""
+                    st.rerun()
 
 
 def admin_users():
@@ -1827,8 +1861,7 @@ def admin_users():
         u = dict(u)
         pl = PLANS.get(u["plan"], {"name": "?", "icon": "?"})
         with st.expander(
-                f"{pl['icon']} {u['full_name']}"
-                f" — {u['email']}"):
+                f"{u['full_name']} — {u['email']}"):
             st.markdown(
                 f"**Plan:** {pl['name']}"
                 f" | **Do:** {u.get('subscription_end', '-')}"
@@ -1905,7 +1938,7 @@ def admin_payments():
                 days = st.number_input("Dana", 1, value=30)
                 meth = st.selectbox(
                     "Način", ["Transfer", "Gotovina",
-                              "PayPal"])
+                              "PayPal", "Stripe"])
             if st.form_submit_button("✅"):
                 pe = (pd + timedelta(days=days)).isoformat()
                 with get_db() as conn:
@@ -1932,6 +1965,8 @@ def admin_settings():
     st.markdown(
         f"### ⚙️ Podešavanja\n"
         f"**bcrypt:** {'✅' if BCRYPT_AVAILABLE else '❌'}"
+        f" | **Stripe:**"
+        f" {'✅' if STRIPE_SECRET_KEY else '❌ Nije podešen'}"
         f" | **Timeout:** {SESSION_TIMEOUT_MINUTES}min")
     with st.expander("🔒 Promena lozinke"):
         with st.form("chpw"):
@@ -1958,9 +1993,7 @@ def admin_settings():
                         st.success("✅")
                     else:
                         st.error("Pogrešna.")
-
-
-# ═══════════════════════════════════════════════════════════════
+                     # ═══════════════════════════════════════════════════════════════
 #  KORISNIČKI PANEL
 # ═══════════════════════════════════════════════════════════════
 
@@ -2002,97 +2035,182 @@ def render_user():
     if not OPENAI_API_KEY:
         st.error("AI nije podešen.")
         return
+
     tabs = st.tabs(
-        ["⚖️ Pravni AI", "🔄 Prevod",
-         "📝 Podnesci", "🔍 Pretraga", "🌉 Most"])
+        ["📁 Predmeti", "🔍 Pretraga",
+         "🔄 Prevod", "📝 Podnesci",
+         "🌉 Most", "💳 Pretplata"])
     with tabs[0]:
-        tab_ai()
+        tab_cases()
     with tabs[1]:
-        tab_translate()
-    with tabs[2]:
-        tab_docs()
-    with tabs[3]:
         tab_search()
+    with tabs[2]:
+        tab_translate()
+    with tabs[3]:
+        tab_docs()
     with tabs[4]:
         tab_bridge()
+    with tabs[5]:
+        tab_subscription()
     st.markdown("---")
     if st.button("🚪 Odjavi se", key="usr_out"):
         do_logout()
         st.rerun()
 
 
-def tab_ai():
+def tab_cases():
     user = st.session_state.current_user
+    uid = user["id"]
+
     st.markdown(
         '<div class="pk-card-gold">'
-        '<h3>⚖️ Pravni AI za Kosovo</h3></div>',
+        '<h3>📁 Predmeti — Pravni AI</h3>'
+        '<p style="color:#6B7280;margin:0">'
+        'Svaki predmet ima svoju istoriju razgovora'
+        ' i dokumente.</p></div>',
         unsafe_allow_html=True)
-    with st.expander("📁 Učitaj dokument"):
-        up = st.file_uploader(
-            "PDF/TXT", type=["pdf", "txt"],
-            accept_multiple_files=True, key="a_up")
-        if up:
-            ex = {d["name"] for d in st.session_state.docs}
-            nw = [f for f in up if f.name not in ex]
-            if nw:
-                with st.spinner("⏳"):
-                    for f in nw:
-                        t, n, l = process_file(f)
-                        if t:
-                            st.session_state.docs.append(
-                                {"name": n, "text": t})
-                    try:
-                        st.session_state.vs = build_vs(
-                            st.session_state.docs,
-                            OPENAI_API_KEY)
-                        st.success(f"✅ {len(nw)}")
-                    except Exception as e:
-                        st.error(f"{e}")
-    for msg in st.session_state.chat:
+
+    # ── Selektor predmeta + novi predmet ──────────────────
+    cases = get_user_cases(uid)
+    c1, c2, c3 = st.columns([4, 2, 1])
+
+    with c1:
+        if cases:
+            opts = {c["id"]: c["title"] for c in cases}
+            keys = list(opts.keys())
+            active = st.session_state.get("active_case_id")
+            idx = 0
+            if active in keys:
+                idx = keys.index(active)
+            sel = st.selectbox(
+                "Izaberi predmet", keys, index=idx,
+                format_func=lambda x: opts[x],
+                key="case_sel")
+            st.session_state.active_case_id = sel
+        else:
+            st.info("Nemate predmeta. Napravite novi →")
+            st.session_state.active_case_id = None
+
+    with c2:
+        new_title = st.text_input(
+            "Naziv", placeholder="Novi predmet...",
+            label_visibility="collapsed",
+            key="new_case_title")
+    with c3:
+        if st.button("➕ Kreiraj",
+                      use_container_width=True,
+                      key="new_case_btn"):
+            if new_title and new_title.strip():
+                cid = create_case(uid, new_title.strip())
+                st.session_state.active_case_id = cid
+                st.rerun()
+            else:
+                st.error("Unesite naziv.")
+
+    active_id = st.session_state.get("active_case_id")
+    if not active_id:
+        return
+
+    # ── Dugme za brisanje ─────────────────────────────────
+    with st.expander("⚙️ Opcije predmeta"):
+        if st.button("🗑️ Obriši ovaj predmet",
+                     key="del_case"):
+            delete_case(active_id, uid)
+            st.rerun()
+
+    # ── Dokumenti predmeta ────────────────────────────────
+    case_docs = get_case_documents(active_id)
+    with st.expander(
+            f"📎 Dokumenti ({len(case_docs)})"):
+        uploaded = st.file_uploader(
+            "Dodaj dokument",
+            type=["pdf", "txt", "jpg", "jpeg",
+                  "png", "gif", "webp"],
+            accept_multiple_files=True,
+            key=f"doc_up_{active_id}")
+        if uploaded:
+            for f in uploaded:
+                existing = [d["filename"]
+                            for d in case_docs]
+                if f.name not in existing:
+                    with st.spinner(f"⏳ {f.name}..."):
+                        text, name, lang = process_upload(f)
+                        if text and not text.startswith("⚠️"):
+                            add_case_document(
+                                active_id, name,
+                                text, lang)
+                            st.success(f"✅ {name}")
+                        elif text:
+                            st.error(text)
+            st.rerun()
+
+        if case_docs:
+            for d in case_docs:
+                dc1, dc2 = st.columns([5, 1])
+                with dc1:
+                    st.caption(
+                        f"📄 {d['filename']}"
+                        f" ({d['size']//1000}KB)")
+                with dc2:
+                    if st.button("🗑️",
+                                 key=f"deldoc_{d['id']}"):
+                        delete_case_document(
+                            d['id'], active_id)
+                        st.rerun()
+        else:
+            st.caption("Nema dokumenata.")
+
+    # ── Chat predmeta ─────────────────────────────────────
+    messages = get_case_messages(active_id)
+    for msg in messages:
         av = "👤" if msg["role"] == "user" else "⚖️"
         with st.chat_message(msg["role"], avatar=av):
             st.markdown(msg["content"])
-            if msg.get("sources_html"):
+            if msg.get("sources_html") and msg["sources_html"]:
                 st.markdown(
                     msg["sources_html"],
                     unsafe_allow_html=True)
-    if not st.session_state.chat:
+
+    if not messages:
+        st.markdown("#### 💡 Primeri:")
         sugs = [
             "Koja je kazna za krađu po KZ?",
             "Rokovi za žalbu u krivičnom postupku?",
-            "Uslovi za razvod braka?",
             "Koja prava garantuje Ustav?"]
-        cols = st.columns(2)
+        cols = st.columns(3)
         for i, s in enumerate(sugs):
-            with cols[i % 2]:
-                if st.button(s, key=f"s_{i}",
+            with cols[i]:
+                if st.button(s, key=f"sug_{i}",
                              use_container_width=True):
-                    _ask(s, user)
+                    _ask_case(active_id, s, user)
                     st.rerun()
-    if p := st.chat_input("Postavite pitanje..."):
-        _ask(p, user)
+
+    if prompt := st.chat_input("Postavite pitanje..."):
+        _ask_case(active_id, prompt, user)
         st.rerun()
 
 
-def _ask(q, user):
-    st.session_state.chat.append(
-        {"role": "user", "content": q})
-    ans, conf, res = query_ai(
-        q, st.session_state.get("vs"))
-    sh = render_sources_html(res) if res else ""
-    st.session_state.chat.append({
-        "role": "assistant", "content": ans,
-        "sources_html": sh, "confidence": conf})
-    log_action(user["id"], "query",
-               f"[{conf}] len={len(q)}")
+def _ask_case(case_id, question, user):
+    save_case_message(case_id, "user", question)
+    case_vs = get_case_doc_vs(case_id)
+    answer, conf, results = query_ai(question, case_vs)
+    sources_html = render_sources_html(results) \
+        if results else ""
+    save_case_message(
+        case_id, "assistant", answer,
+        sources_html, conf)
+    log_action(
+        user["id"], "query",
+        f"[{conf}] case={case_id} len={len(question)}")
 
 
 def tab_search():
     st.markdown(
         '<div class="pk-card-gold">'
-        '<h3>🔍 Pretraga</h3></div>',
+        '<h3>🔍 Pretraga zakona</h3></div>',
         unsafe_allow_html=True)
-    q = st.text_input("🔍", placeholder="krađa, član 325...")
+    q = st.text_input(
+        "Pretraži", placeholder="krađa, član 325...")
     if q:
         res = search_laws(q)
         if res:
@@ -2104,8 +2222,11 @@ def tab_search():
                 hi = HIERARCHY_LEVELS.get(
                     hl, HIERARCHY_LEVELS[3])
                 with st.expander(
-                        f"{hi['icon']} {src}: {art}"
+                        f"{src}: {art}"
                         f" (rel: {r.get('score', 0)})"):
+                    st.markdown(
+                        f"**Snaga:** {hi['icon']}"
+                        f" {hi['name']}")
                     st.markdown(r['content'])
         else:
             st.info("Nema rezultata.")
@@ -2116,20 +2237,21 @@ def tab_translate():
         '<div class="pk-card-gold">'
         '<h3>🔄 Prevod</h3></div>',
         unsafe_allow_html=True)
-    f = st.file_uploader("PDF/TXT", type=["pdf", "txt"],
+    f = st.file_uploader("PDF/TXT",
+                         type=["pdf", "txt"],
                          key="tr_up")
     if f:
-        t, n, l = process_file(f)
-        if t and l != "sr":
+        text, name, lang = process_upload(f)
+        if text and lang != "sr":
             if st.button("🔄 Prevedi", type="primary",
                          use_container_width=True):
                 with st.spinner("⏳"):
-                    tr = translate_full(t, l)
+                    tr = translate_full(text, lang)
                 st.markdown(tr)
                 w = create_word("Prevod", tr)
                 st.download_button("📥 Word", data=w,
                                    file_name="prevod.docx")
-        elif t:
+        elif text:
             st.info("Već srpski.")
 
 
@@ -2185,6 +2307,53 @@ def tab_bridge():
                 st.markdown("---\n**Termini:**")
                 for a, s in found:
                     st.markdown(f"- **{a}** → {s}")
+
+
+def tab_subscription():
+    user = st.session_state.current_user
+    st.markdown(
+        '<div class="pk-card-gold">'
+        '<h3>💳 Pretplata</h3></div>',
+        unsafe_allow_html=True)
+
+    current_plan = PLANS.get(
+        user["plan"], {"name": "?", "price": 0})
+    st.markdown(
+        f"**Trenutni plan:** {current_plan['name']}"
+        f" | **Do:** {user.get('subscription_end', '—')}")
+
+    st.markdown("### Dostupni paketi")
+    for key, plan in PLANS.items():
+        if key == "enterprise":
+            continue
+        price_text = (f"€{plan['price']}/mesec"
+                      if plan['price'] > 0
+                      else "Po dogovoru")
+        st.markdown(
+            f'<div class="law-item">'
+            f'<b>{plan["icon"]} {plan["name"]}</b>'
+            f' — {price_text}</div>',
+            unsafe_allow_html=True)
+
+        if plan['price'] > 0 and key != user.get("plan"):
+            if STRIPE_SECRET_KEY and STRIPE_AVAILABLE:
+                url = create_stripe_checkout(
+                    key, user["email"])
+                if url:
+                    st.link_button(
+                        f"Pretplati se — {price_text}",
+                        url, use_container_width=True)
+                else:
+                    st.caption("Stripe nije konfigurisan.")
+            else:
+                st.caption(
+                    f"Za aktivaciju kontaktirajte:"
+                    f" {ADMIN_EMAIL}")
+
+    if not STRIPE_SECRET_KEY:
+        st.info(
+            "💡 Stripe plaćanje će biti dostupno uskoro."
+            f" Za sada kontaktirajte {ADMIN_EMAIL}.")
 
 
 # ═══════════════════════════════════════════════════════════════

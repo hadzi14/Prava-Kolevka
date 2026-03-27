@@ -1109,12 +1109,12 @@ def delete_case(case_id, user_id):
 
 def get_case_messages(case_id):
     with get_db() as conn:
-        return conn.execute(
-            "SELECT role,content,sources_html,confidence"
+        rows = conn.execute(
+            "SELECT role, content, sources_html, confidence"
             " FROM case_messages WHERE case_id=?"
             " ORDER BY created_at",
             (case_id,)).fetchall()
-
+        return [dict(r) for r in rows]
 
 def save_case_message(case_id, role, content,
                       sources_html="", confidence=""):

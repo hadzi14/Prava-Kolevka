@@ -2161,15 +2161,18 @@ def tab_cases():
             st.caption("Nema dokumenata.")
 
     # ── Chat predmeta ─────────────────────────────────────
-    messages = get_case_messages(active_id)
+       messages = get_case_messages(active_id)
     for msg in messages:
-        av = "👤" if msg["role"] == "user" else "⚖️"
-        with st.chat_message(msg["role"], avatar=av):
-            st.markdown(msg["content"])
-            if msg.get("sources_html") and msg["sources_html"]:
-                st.markdown(
-                    msg["sources_html"],
-                    unsafe_allow_html=True)
+        if not isinstance(msg, dict):
+            continue
+        role = msg.get("role", "assistant")
+        content = msg.get("content", "")
+        sources = msg.get("sources_html", "") or ""
+        av = "👤" if role == "user" else "⚖️"
+        with st.chat_message(role, avatar=av):
+            st.markdown(content)
+            if sources.strip():
+                st.markdown(sources, unsafe_allow_html=True)
 
     if not messages:
         st.markdown("#### 💡 Primeri:")

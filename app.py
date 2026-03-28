@@ -1823,8 +1823,7 @@ def admin_laws():
                 m.get("effective_date", ""),
                 "sr",
                 m.get("full_text", ""),
-                m.get("hierarchy_level", 3),
-                m.get("publication_date", ""))
+                m.get("hierarchy_level", 3))
             if lid:
                 st.success(
                     f"Zakon sačuvan: {n} članova")
@@ -1877,9 +1876,6 @@ def admin_laws():
             eff_date = st.text_input(
                 "Datum stupanja na snagu",
                 key="al_effdate")
-            pub_date = st.text_input(
-                "Datum objavljivanja",
-                key="al_pubdate")
 
         full_text = ""
         if method == "PDF":
@@ -1939,7 +1935,6 @@ def admin_laws():
                 "hierarchy_level": hlevel,
                 "gazette_info": gazette,
                 "effective_date": eff_date,
-                "publication_date": pub_date,
                 "full_text": full_text}
 
         # Prikaz preview-a

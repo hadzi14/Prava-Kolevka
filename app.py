@@ -226,16 +226,14 @@ def safe_html(text):
 
 
 def render_footer():
-    """Prikazuje disclaimer footer."""
     st.markdown("---")
     st.markdown(
         f'<div style="text-align:center;'
-        f'padding:1rem 0;color:{TEXT_MUTED};'
+        f'padding:1rem 0;color:{TEXT_SECONDARY};'
         f'font-size:0.75rem;">'
-        f'⚖️ {DISCLAIMER_TEXT}'
+        f'{DISCLAIMER_TEXT}'
         f'</div>',
         unsafe_allow_html=True)
-
 
 def init_ss():
     defaults = {

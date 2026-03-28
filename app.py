@@ -2273,7 +2273,7 @@ def render_user():
     pl = PLANS.get(
         user["plan"],
         {"name": "?", "icon": "?"})
-    bc = "badge-gold"
+    bc = "badge-active"
     bt = f"{sub['days_left']}d"
     if sub["status"] == "expiring":
         bc = "badge-warn"
@@ -2283,8 +2283,9 @@ def render_user():
     st.markdown(
         '<div class="top-bar">'
         '<div style="display:flex;'
-        'align-items:center;gap:12px">'
-        '<h2>Prava <span class="gold">'
+        'align-items:center;gap:8px">'
+        f'{SCALE_SVG_HEADER}'
+        '<h2>Prava <span class="accent">'
         'Kolevka</span></h2></div>'
         '<div style="display:flex;gap:8px;'
         'align-items:center;flex-wrap:wrap">'
@@ -2298,7 +2299,7 @@ def render_user():
     if sub["message"]:
         st.warning(sub['message'])
     if not OPENAI_API_KEY:
-        st.error("AI nije podesen.")
+        st.error("AI nije podešen.")
         return
 
     tabs = st.tabs(

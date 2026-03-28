@@ -61,17 +61,42 @@ STRIPE_SUCCESS_URL = get_secret(
 STRIPE_CANCEL_URL = get_secret(
     "STRIPE_CANCEL_URL", "https://pravakolevka.rs/cancel")
 
-NAVY = "#0A1628"
-NAVY_MID = "#1B2A4A"
-GOLD = "#C5962C"
-GOLD_LIGHT = "#F0E6C8"
-GOLD_PALE = "#FBF7ED"
-SURFACE = "#F5F4F0"
+PRIMARY = "#13294B"
+PRIMARY_DARK = "#0F1F38"
+ACCENT = "#C6363C"
+ACCENT_DARK = "#A61E2A"
+SURFACE = "#F7F8FA"
 CARD_BG = "#FFFFFF"
-TEXT_MUTED = "#6B7280"
+BORDER = "#E5E7EB"
+TEXT_PRIMARY = "#111827"
+TEXT_SECONDARY = "#4B5563"
 SUCCESS_C = "#059669"
 ERROR_C = "#DC2626"
 WARNING_C = "#D97706"
+
+SCALE_SVG_LOGIN = (
+    f'<div style="width:64px;height:64px;'
+    f'background:{PRIMARY};border-radius:16px;'
+    f'margin:0 auto 1rem;display:flex;'
+    f'align-items:center;justify-content:center;">'
+    f'<svg width="36" height="36" viewBox="0 0 36 36" fill="none">'
+    f'<line x1="18" y1="4" x2="18" y2="28" stroke="white" stroke-width="2" stroke-linecap="round"/>'
+    f'<line x1="6" y1="12" x2="30" y2="12" stroke="white" stroke-width="2" stroke-linecap="round"/>'
+    f'<circle cx="18" cy="4" r="2.5" fill="{ACCENT}"/>'
+    f'<path d="M6 12 L3 22 H9 Z" fill="none" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>'
+    f'<path d="M30 12 L27 22 H33 Z" fill="none" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>'
+    f'<rect x="13" y="28" width="10" height="3" rx="1.5" fill="white"/>'
+    f'</svg></div>')
+
+SCALE_SVG_HEADER = (
+    f'<svg width="24" height="24" viewBox="0 0 36 36" fill="none" style="vertical-align:middle;margin-right:6px;">'
+    f'<line x1="18" y1="4" x2="18" y2="28" stroke="white" stroke-width="2" stroke-linecap="round"/>'
+    f'<line x1="6" y1="12" x2="30" y2="12" stroke="white" stroke-width="2" stroke-linecap="round"/>'
+    f'<circle cx="18" cy="4" r="2.5" fill="{ACCENT}"/>'
+    f'<path d="M6 12 L3 22 H9 Z" fill="none" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>'
+    f'<path d="M30 12 L27 22 H33 Z" fill="none" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>'
+    f'<rect x="13" y="28" width="10" height="3" rx="1.5" fill="white"/>'
+    f'</svg>')
 
 DISCLAIMER_TEXT = (
     "Prava Kolevka je AI pomoćni alat za pravnu pretragu"

@@ -149,33 +149,63 @@ LEGAL_AREAS = [
 
 AREA_KEYWORDS = {
     "Krivično pravo": [
-        "krivičn", "kazna", "delo", "krađa", "ubistvo",
-        "prevara", "nasilj", "pretnja", "korupcij",
-        "zatvor", "umišljaj", "nehat", "nužna odbrana"],
+        "krivičn", "kazna", "delo", "krađa",
+        "ubistvo", "prevara", "nasilj", "pretnja",
+        "korupcij", "zatvor", "umišljaj", "nehat",
+        "nužna odbrana", "krivic", "zlocin",
+        "krivično delo", "učinilac", "saučesni"],
     "Krivični postupak": [
         "postupak", "pritvor", "hapšenj", "istrag",
         "optužnic", "presud", "žalb", "dokaz",
-        "branilac", "okrivljeni", "tužilac"],
+        "branilac", "okrivljeni", "tužilac",
+        "krivični postupak", "glavni pretres",
+        "optuženi", "osumnjičen"],
     "Građansko pravo": [
         "obligacij", "ugovor", "šteta", "naknada",
-        "odgovornost", "hipoteka", "zastarelost"],
+        "odgovornost", "hipoteka", "zastarelost",
+        "dug", "poverilac", "dužnik", "naknada štete"],
+    "Obligaciono pravo": [
+        "obligacij", "ugovor", "šteta", "naknada",
+        "odgovornost", "dug", "poverilac", "dužnik",
+        "naknada štete", "raskid ugovora",
+        "ispunjenje", "zakup"],
     "Parnični postupak": [
         "parnič", "tužba", "prvostepen", "revizija",
-        "izvršenje", "presuda", "rešenje"],
+        "izvršenje", "presuda", "rešenje", "parnica",
+        "tužilac", "tuženi", "parnični"],
     "Porodično pravo": [
-        "brak", "razvod", "alimentacij", "starateljstv",
-        "dete", "deca", "porodičn"],
+        "brak", "razvod", "alimentacij",
+        "starateljstv", "dete", "deca", "porodičn",
+        "suprug", "izdržavanje", "roditeljsk"],
     "Radno pravo": [
         "rad", "zaposlen", "otkaz", "plata",
-        "ugovor o radu", "sindikat", "penzij"],
+        "ugovor o radu", "sindikat", "penzij",
+        "poslodavac", "radnik", "zarada",
+        "radni odnos", "zaposlenje", "radno mesto",
+        "neisplaćen", "otpremnina", "odmor",
+        "prekovremeni", "radni staž", "mobbing",
+        "mobbing", "diskriminacij", "zapošljavanje",
+        "kolektivni ugovor", "štrajk",
+        "radno vreme", "zaradu", "platu",
+        "plate", "zarade", "radnog odnosa",
+        "zaposlenog", "poslodavca", "otkazu"],
     "Upravno pravo": [
-        "upravn", "organ", "inspekcij", "dozvol"],
+        "upravn", "organ", "inspekcij", "dozvol",
+        "upravni postupak", "upravni spor",
+        "rešenje organa"],
     "Prekršajno pravo": [
-        "prekršaj", "novčana kazna", "mandatna"],
+        "prekršaj", "novčana kazna", "mandatna",
+        "prekršajn"],
     "Ustavno pravo": [
         "ustav", "ustavni", "osnovna prava",
-        "ljudska prava", "slobode", "ustavni sud"],
+        "ljudska prava", "slobode", "ustavni sud",
+        "ustavna žalba"],
+    "Imovinsko pravo": [
+        "imovina", "svojina", "posed", "vlasništvo",
+        "katastar", "nepokretnost", "pravo svojine",
+        "uzurpacija", "eksproprijacija"],
 }
+
 AREA_KEY_LAWS = {
     "Radno pravo": {
         "laws": ["zakon o radu", "zor"],

@@ -593,7 +593,7 @@ def parse_articles(full_text):
 def save_law_to_db(name_sr, name_al, short_name,
                    law_number, area, gazette_info,
                    effective_date, language, full_text,
-                   hierarchy_level=3):
+                   hierarchy_level=3, publication_date=""):
     try:
         articles, warnings = parse_articles(full_text)
         with get_db() as conn:
@@ -601,11 +601,12 @@ def save_law_to_db(name_sr, name_al, short_name,
                 "INSERT INTO laws (name_sr,name_al,"
                 "short_name,law_number,area,gazette_info,"
                 "effective_date,language,full_text,"
-                "hierarchy_level)"
-                " VALUES(?,?,?,?,?,?,?,?,?,?)",
+                "hierarchy_level,publication_date)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                 (name_sr, name_al, short_name, law_number,
                  area, gazette_info, effective_date,
-                 language, full_text, hierarchy_level))
+                 language, full_text, hierarchy_level,
+                 publication_date))
             law_id = conn.execute(
                 "SELECT last_insert_rowid()").fetchone()[0]
             for art in articles:
@@ -622,8 +623,7 @@ def save_law_to_db(name_sr, name_al, short_name,
             st.session_state.law_vs_version = ""
             return law_id, len(articles), warnings
     except Exception as e:
-        return None, 0, [f"Greska: {e}"]
-
+        return None, 0, [f"Greška: {e}"]
 
 def reparse_law(law_id):
     try:

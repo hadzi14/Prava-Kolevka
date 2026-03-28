@@ -593,7 +593,7 @@ def parse_articles(full_text):
 def save_law_to_db(name_sr, name_al, short_name,
                    law_number, area, gazette_info,
                    effective_date, language, full_text,
-                   hierarchy_level=3, publication_date=""):
+                   hierarchy_level=3):
     try:
         articles, warnings = parse_articles(full_text)
         with get_db() as conn:
@@ -601,12 +601,11 @@ def save_law_to_db(name_sr, name_al, short_name,
                 "INSERT INTO laws (name_sr,name_al,"
                 "short_name,law_number,area,gazette_info,"
                 "effective_date,language,full_text,"
-                "hierarchy_level,publication_date)"
-                " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                "hierarchy_level)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?)",
                 (name_sr, name_al, short_name, law_number,
                  area, gazette_info, effective_date,
-                 language, full_text, hierarchy_level,
-                 publication_date))
+                 language, full_text, hierarchy_level))
             law_id = conn.execute(
                 "SELECT last_insert_rowid()").fetchone()[0]
             for art in articles:

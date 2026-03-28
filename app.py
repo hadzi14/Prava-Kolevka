@@ -1641,34 +1641,34 @@ body,p,h1,h2,h3,h4,h5,h6,div,input,textarea,button,label,a{{font-family:'Inter',
 .stApp{{background:{SURFACE}!important}}
 #MainMenu,footer,header{{visibility:hidden}}
 [data-testid="stSidebar"]{{display:none!important}}
-.login-box{{max-width:440px;margin:6vh auto;padding:2.5rem;background:{CARD_BG};border-radius:24px;box-shadow:0 20px 60px rgba(10,22,40,.12)}}
+.login-box{{max-width:420px;margin:8vh auto;padding:2.5rem;background:{CARD_BG};border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.08);border:1px solid {BORDER}}}
 .login-logo{{text-align:center;margin-bottom:2rem}}
-.login-logo .icon{{width:72px;height:72px;background:linear-gradient(135deg,{NAVY},{NAVY_MID});border-radius:20px;display:inline-flex;align-items:center;justify-content:center;font-size:2.2rem;margin-bottom:1rem}}
-.login-logo h1{{font-family:'Playfair Display',serif!important;font-size:1.8rem;color:{NAVY};margin:0}}
-.login-logo p{{color:{TEXT_MUTED};font-size:.85rem}}
-.top-bar{{background:linear-gradient(135deg,{NAVY},{NAVY_MID});color:white;padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;border-radius:0 0 20px 20px;margin:-1rem -1rem 1.5rem -1rem;box-shadow:0 4px 20px rgba(10,22,40,.25);flex-wrap:wrap;gap:8px}}
-.top-bar h2{{font-family:'Playfair Display',serif!important;margin:0;font-size:1.3rem}}
-.top-bar .gold{{color:{GOLD}}}
-.badge{{background:rgba(255,255,255,.15);padding:4px 12px;border-radius:20px;font-weight:500;font-size:.8rem}}
-.badge-gold{{background:{GOLD};color:{NAVY};font-weight:700}}
+.login-logo h1{{font-family:'Playfair Display',serif!important;font-size:1.8rem;margin:0}}
+.login-logo .brand-prava{{color:{PRIMARY}}}
+.login-logo .brand-kolevka{{color:{ACCENT}}}
+.login-logo p{{color:{TEXT_SECONDARY};font-size:.85rem;margin-top:4px}}
+.top-bar{{background:{PRIMARY};color:white;padding:.875rem 1.5rem;display:flex;justify-content:space-between;align-items:center;border-radius:0 0 12px 12px;margin:-1rem -1rem 1.5rem -1rem;box-shadow:0 2px 8px rgba(0,0,0,.12);flex-wrap:wrap;gap:8px}}
+.top-bar h2{{font-family:'Playfair Display',serif!important;margin:0;font-size:1.2rem;display:flex;align-items:center;gap:4px}}
+.top-bar .accent{{color:{ACCENT}}}
+.badge{{background:rgba(255,255,255,.15);padding:3px 10px;border-radius:6px;font-weight:500;font-size:.78rem}}
+.badge-active{{background:{ACCENT};color:white;font-weight:600}}
 .badge-warn{{background:{WARNING_C};color:white}}
 .badge-err{{background:{ERROR_C};color:white}}
-.pk-card{{background:{CARD_BG};border-radius:20px;padding:1.75rem;margin:.75rem 0;box-shadow:0 1px 4px rgba(0,0,0,.06)}}
-.pk-card-gold{{background:{CARD_BG};border-radius:20px;padding:1.75rem;margin:.75rem 0;border-left:4px solid {GOLD}}}
-.pk-card h3,.pk-card-gold h3{{font-family:'Playfair Display',serif!important;color:{NAVY};margin-top:0}}
-.metric-box{{background:{CARD_BG};border-radius:16px;padding:1.25rem;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}}
-.metric-box .num{{font-family:'Playfair Display',serif!important;font-size:2rem;font-weight:700;color:{NAVY}}}
-.metric-box .lbl{{font-size:.8rem;color:{TEXT_MUTED}}}
-.stButton>button{{border-radius:12px!important;font-weight:600!important;border:none!important;background:{NAVY}!important;color:white!important}}
-.stButton>button:hover{{background:{NAVY_MID}!important}}
-.stTextInput>div>div>input,.stTextArea>div>div>textarea{{border-radius:12px!important;border:2px solid #E5E7EB!important}}
-.stTabs [data-baseweb="tab-list"]{{gap:4px;background:{CARD_BG};border-radius:14px;padding:4px}}
-.stTabs [data-baseweb="tab"]{{border-radius:10px!important;font-weight:500!important}}
-.stTabs [aria-selected="true"]{{background:{NAVY}!important;color:white!important}}
-.stFileUploader>div{{border-radius:16px!important;border:2px dashed {GOLD_LIGHT}!important;background:{GOLD_PALE}!important}}
-[data-testid="stChatMessage"]{{border-radius:16px!important;word-wrap:break-word!important;overflow-wrap:break-word!important}}
+.pk-card{{background:{CARD_BG};border-radius:12px;padding:1.5rem;margin:.75rem 0;border:1px solid {BORDER}}}
+.pk-card-accent{{background:{CARD_BG};border-radius:12px;padding:1.5rem;margin:.75rem 0;border-left:3px solid {ACCENT};border-top:1px solid {BORDER};border-right:1px solid {BORDER};border-bottom:1px solid {BORDER}}}
+.pk-card h3,.pk-card-accent h3{{font-family:'Playfair Display',serif!important;color:{PRIMARY};margin-top:0}}
+.stButton>button{{border-radius:8px!important;font-weight:600!important;border:none!important;background:{PRIMARY}!important;color:white!important;transition:background .2s!important}}
+.stButton>button:hover{{background:{PRIMARY_DARK}!important}}
+.stTextInput>div>div>input,.stTextArea>div>div>textarea{{border-radius:8px!important;border:1px solid {BORDER}!important}}
+.stTextInput>div>div>input:focus,.stTextArea>div>div>textarea:focus{{border-color:{ACCENT}!important;box-shadow:0 0 0 1px {ACCENT}!important}}
+.stTabs [data-baseweb="tab-list"]{{gap:0;background:transparent;border-bottom:1px solid {BORDER};padding:0;border-radius:0}}
+.stTabs [data-baseweb="tab"]{{border-radius:0!important;font-weight:500!important;color:{TEXT_SECONDARY}!important;border-bottom:2px solid transparent!important;padding:.5rem 1rem!important;background:transparent!important}}
+.stTabs [aria-selected="true"]{{color:{PRIMARY}!important;background:transparent!important;border-bottom:2px solid {ACCENT}!important;font-weight:600!important}}
+.stFileUploader>div{{border-radius:10px!important;border:1px dashed {BORDER}!important;background:{SURFACE}!important}}
+[data-testid="stChatMessage"]{{border-radius:12px!important;word-wrap:break-word!important;overflow-wrap:break-word!important}}
+[data-testid="stExpander"]{{border:1px solid {BORDER}!important;border-radius:8px!important}}
 [data-testid="stExpander"] summary{{word-wrap:break-word!important;overflow-wrap:break-word!important}}
-@media(max-width:768px){{.top-bar{{padding:.75rem 1rem}}.top-bar h2{{font-size:1rem}}}}
+@media(max-width:768px){{.top-bar{{padding:.5rem .75rem}}.top-bar h2{{font-size:1rem}}}}
 </style>
 """
 

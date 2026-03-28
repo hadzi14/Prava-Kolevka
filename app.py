@@ -1797,304 +1797,68 @@ def admin_dashboard():
         return
     c1, c2, c3, c4 = st.columns(4)
     for col, val, lbl in [
-            (c1, str(active), "Aktivnih"),
-            (c2, f"E{rev:.0f}", "Mesec"),
-            (c3, str(nl), "Zakona"),
-            (c4, str(na), "Clanova")]:
+            (c1, str(active), "Aktivnih korisnika"),
+            (c2, f"€{rev:.0f}", "Prihod ovog meseca"),
+            (c3, str(nl), "Ukupno zakona"),
+            (c4, str(na), "Ukupno članova")]:
         with col:
             st.metric(lbl, val)
 
-
-def admin_laws():
-    st.markdown("### Zakoni")
-
-    # ═══ SAVE AKCIJA (PRE WIDGETA) ═══
-    if st.session_state.get("_save_law"):
-        st.session_state["_save_law"] = False
-        m = st.session_state.get("preview_meta")
-        if m and m.get("name_sr") and m.get("full_text"):
-            lid, n, w = save_law_to_db(
-                m.get("name_sr", ""),
-                m.get("name_al", ""),
-                m.get("short_name", ""),
-                m.get("law_number", ""),
-                m.get("area", "Ostalo"),
-                m.get("gazette_info", ""),
-                m.get("effective_date", ""),
-                "sr",
-                m.get("full_text", ""),
-                m.get("hierarchy_level", 3))
-            if lid:
-                st.success(
-                    f"Zakon sačuvan: {n} članova")
-                for ww in w:
-                    st.warning(ww)
-                st.session_state.preview_articles = None
-                st.session_state.preview_warnings = None
-                st.session_state.preview_meta = None
-                st.rerun()
-            else:
-                st.error(
-                    "Greška pri čuvanju: "
-                    + "; ".join(w))
-        else:
-            st.error("Nedostaju podaci za čuvanje.")
-
-    with st.expander("Dodaj novi zakon",
-                     expanded=False):
-        method = st.radio(
-            "Način unosa",
-            ["Tekst", "PDF"],
-            horizontal=True,
-            key="law_input_method")
-
-        c1, c2 = st.columns(2)
-        with c1:
-            name_sr = st.text_input(
-                "Naziv zakona", key="al_name")
-            short = st.text_input(
-                "Skraćenica", key="al_short")
-            hlevel = st.selectbox(
-                "Pravna snaga",
-                list(HIERARCHY_LEVELS.keys()),
-                index=2,
-                format_func=lambda x: (
-                    HIERARCHY_LEVELS[x]['name']),
-                key="al_hl")
-            area = st.selectbox(
-                "Oblast prava", LEGAL_AREAS,
-                key="al_area")
-            gazette = st.text_input(
-                "Službeni glasnik / izvor",
-                key="al_gazette")
-        with c2:
-            lawnum = st.text_input(
-                "Broj zakona", key="al_num")
-            name_al = st.text_input(
-                "Naziv na albanskom",
-                key="al_nameal")
-            eff_date = st.text_input(
-                "Datum stupanja na snagu",
-                key="al_effdate")
-
-        full_text = ""
-        if method == "PDF":
-            pdf_file = st.file_uploader(
-                "Upload PDF zakona",
-                type=["pdf"],
-                key="al_pdf")
-            if pdf_file is not None:
-                pkey = (f"_pdf_text_{pdf_file.name}"
-                        f"_{pdf_file.size}")
-                if pkey not in st.session_state:
-                    with st.spinner("Čitam PDF..."):
-                        st.session_state[pkey] = \
-                            extract_pdf(pdf_file)
-                full_text = st.session_state.get(
-                    pkey, "")
-                if full_text:
-                    if len(full_text) < 100:
-                        st.warning(
-                            "PDF sadrži vrlo malo teksta. "
-                            "Moguće da je skeniran.")
-                    else:
-                        st.success(
-                            f"Izvučeno {len(full_text)} "
-                            f"karaktera iz PDF-a")
-                    with st.expander(
-                            "Prikaži izvučeni tekst"):
-                        st.text(full_text[:3000])
-                        if len(full_text) > 3000:
-                            st.info(
-                                f"...i još "
-                                f"{len(full_text)-3000} "
-                                f"karaktera")
-                else:
-                    st.error(
-                        "Nije moguće pročitati "
-                        "tekst iz PDF-a.")
-        else:
-            full_text = st.text_area(
-                "Tekst zakona", height=400,
-                key="al_text")
-
-        # Preview dugme
-        if st.button("Preview",
-                     disabled=not full_text,
-                     use_container_width=True,
-                     key="preview_btn"):
-            arts, warns = parse_articles(full_text)
-            st.session_state.preview_articles = arts
-            st.session_state.preview_warnings = warns
-            st.session_state.preview_meta = {
-                "name_sr": name_sr,
-                "name_al": name_al,
-                "short_name": short,
-                "law_number": lawnum,
-                "area": area,
-                "hierarchy_level": hlevel,
-                "gazette_info": gazette,
-                "effective_date": eff_date,
-                "full_text": full_text}
-
-        # Prikaz preview-a
-        if st.session_state.get(
-                "preview_articles") is not None:
-            arts = st.session_state.preview_articles
-            warns = st.session_state.get(
-                "preview_warnings", [])
-            st.success(
-                f"{len(arts)} članova pronađeno")
-            for w in (warns or []):
-                st.warning(w)
-            for a in arts[:5]:
-                t = (f" - {a['title']}"
-                     if a.get('title') else "")
-                st.text(
-                    f"Čl. {a['article_number']}"
-                    f"{t}: "
-                    f"{safe_text(a['content'][:200])}"
-                    "...")
-            if len(arts) > 5:
-                st.info(
-                    f"...i još {len(arts) - 5} "
-                    "članova")
-
-            # SAVE DUGME — samo postavlja flag
-            if st.button(
-                    "Sačuvaj zakon",
-                    use_container_width=True,
-                    type="primary",
-                    key="save_law_btn"):
-                st.session_state["_save_law"] = True
-                st.rerun()
-
-    with st.expander("Export"):
-        if st.button("Izvezi sve (JSON)"):
-            data = export_laws_json()
-            st.download_button(
-                "Preuzmi",
-                data=data,
-                file_name=(
-                    f"backup_{date.today()}.json"),
-                mime="application/json")
-
-    st.markdown("### Zakoni u bazi")
+    # Statistika po pravnoj snazi
+    st.markdown("### Pravni akti po vrsti")
     try:
         with get_db() as conn:
-            laws = conn.execute(
-                "SELECT l.id, l.name_sr,"
-                " l.short_name,"
-                " l.law_number, l.area,"
-                " l.hierarchy_level,"
-                " l.gazette_info,"
-                " l.effective_date,"
-                " COUNT(la.id) as num_articles"
+            rows = conn.execute(
+                "SELECT hierarchy_level,"
+                " COUNT(*) as cnt,"
+                " SUM((SELECT COUNT(*)"
+                "   FROM law_articles la"
+                "   WHERE la.law_id=l.id)) as arts"
                 " FROM laws l"
-                " LEFT JOIN law_articles la"
-                " ON l.id=la.law_id"
-                " GROUP BY l.id"
-                " ORDER BY l.hierarchy_level,"
-                " l.name_sr").fetchall()
+                " WHERE is_active=1"
+                " GROUP BY hierarchy_level"
+                " ORDER BY hierarchy_level"
+            ).fetchall()
+        if rows:
+            cols = st.columns(len(rows))
+            for i, row in enumerate(rows):
+                row = dict(row)
+                hl = row.get("hierarchy_level", 3)
+                hi = HIERARCHY_LEVELS.get(
+                    hl, HIERARCHY_LEVELS[3])
+                with cols[i]:
+                    st.metric(
+                        hi["name"],
+                        f"{row['cnt']} akata",
+                        f"{row.get('arts', 0) or 0} čl.")
+        else:
+            st.info("Nema unetih pravnih akata.")
     except Exception:
-        laws = []
-
-    if not laws:
-        st.info("Nema zakona u bazi.")
-        return
-
-    cur_lvl = None
-    for law in laws:
-        law = dict(law)
-        hl = law.get('hierarchy_level', 3)
-        hi = HIERARCHY_LEVELS.get(
-            hl, HIERARCHY_LEVELS[3])
-        if hl != cur_lvl:
-            cur_lvl = hl
-            st.markdown(f"**{hi['name']}**")
-        na = law.get('num_articles', 0)
-        sn = safe_text(
-            law.get('short_name', ''))
-        ln = safe_text(
-            law.get('law_number', ''))
-        ar = safe_text(law.get('area', ''))
-        name = safe_text(law.get('name_sr', ''))
-        gi = safe_text(
-            law.get('gazette_info', ''))
-        info_parts = []
-        if ln:
-            info_parts.append(ln)
-        if sn:
-            info_parts.append(sn)
-        if ar:
-            info_parts.append(ar)
-        if gi:
-            info_parts.append(gi)
-        info_parts.append(f"{na} čl.")
-        info_str = " | ".join(info_parts)
-
-        with st.expander(
-                f"{name} — {info_str}"):
-            st.markdown(
-                f"Pravna snaga: **{hi['name']}**")
-            if law.get('gazette_info'):
-                st.markdown(
-                    f"Izvor: {law['gazette_info']}")
-            if law.get('effective_date'):
-                st.markdown(
-                    f"Stupanje na snagu: "
-                    f"{law['effective_date']}")
-            try:
-                with get_db() as conn:
-                    arts = conn.execute(
-                        "SELECT article_number,"
-                        "title, content"
-                        " FROM law_articles"
-                        " WHERE law_id=?"
-                        " ORDER BY CAST("
-                        "article_number"
-                        " AS INTEGER)"
-                        " LIMIT 3",
-                        (law["id"],)).fetchall()
-                for a in arts:
-                    t = (f" - {a['title']}"
-                         if a['title'] else "")
-                    st.text(
-                        f"Čl. "
-                        f"{a['article_number']}"
-                        f"{t}: "
-                        f"{safe_text(a['content'][:120])}")
-            except Exception:
-                pass
-            b1, b2 = st.columns(2)
-            with b1:
-                if st.button(
-                        "Ponovo obradi",
-                        key=f"rep_{law['id']}"):
-                    n, w = reparse_law(
-                        law["id"])
-                    st.success(f"{n} čl.")
-                    for ww in w:
-                        st.warning(ww)
-                    st.rerun()
-            with b2:
-                if st.button(
-                        "Obriši",
-                        key=f"del_{law['id']}"):
-                    with get_db() as conn:
-                        conn.execute(
-                            "DELETE FROM"
-                            " law_articles"
-                            " WHERE law_id=?",
-                            (law["id"],))
-                        conn.execute(
-                            "DELETE FROM laws"
-                            " WHERE id=?",
-                            (law["id"],))
-                    st.session_state.law_vs = None
-                    st.session_state \
-                        .law_vs_version = ""
-                    st.rerun()
+        # Fallback ako subquery ne radi
+        try:
+            with get_db() as conn:
+                rows = conn.execute(
+                    "SELECT hierarchy_level,"
+                    " COUNT(*) as cnt"
+                    " FROM laws"
+                    " WHERE is_active=1"
+                    " GROUP BY hierarchy_level"
+                    " ORDER BY hierarchy_level"
+                ).fetchall()
+            if rows:
+                cols = st.columns(len(rows))
+                for i, row in enumerate(rows):
+                    row = dict(row)
+                    hl = row.get(
+                        "hierarchy_level", 3)
+                    hi = HIERARCHY_LEVELS.get(
+                        hl, HIERARCHY_LEVELS[3])
+                    with cols[i]:
+                        st.metric(
+                            hi["name"],
+                            f"{row['cnt']} akata")
+        except Exception:
+            pass
 
 def admin_users():
     st.markdown("### Korisnici")

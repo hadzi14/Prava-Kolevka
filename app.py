@@ -1333,6 +1333,7 @@ SYSTEM_PROMPT = (
 def query_ai(question, case_doc_vs=None):
     ji = detect_jurisdiction_issue(question)
     tl = detect_target_law(question)
+    t_areas = detect_legal_area(question)
     missing = []
     if tl:
         try:
@@ -1351,8 +1352,14 @@ def query_ai(question, case_doc_vs=None):
             pass
 
     results = search_laws(question)
+    conf_level, conf_note = determine_confidence(
+        results, question, t_areas)
+
+    # Proveri ključni zakon
+    has_key, missing_key = check_key_law_present(
+        t_areas, results)
+
     ctx = format_results(results)
-    conf = determine_confidence(results, question)
 
     doc_ctx = "(Nema dokumenata.)"
     if case_doc_vs:
@@ -1367,33 +1374,83 @@ def query_ai(question, case_doc_vs=None):
         except Exception:
             pass
 
+    # Detektovana oblast za AI
+    area_str = (
+        ", ".join(t_areas) if t_areas
+        else "Nije detektovana specifična oblast")
+
+    # Napomena o izvorima za AI
+    source_note_parts = []
+    if missing_key:
+        source_note_parts.append(
+            f"KLJUCNI ZAKON NIJE U BAZI:"
+            f" {', '.join(missing_key)}."
+            f" Nemoj davati odgovor kao da"
+            f" je potpuno utemeljen.")
+    if missing:
+        source_note_parts.append(
+            f"Trazeni zakon nije u bazi:"
+            f" {', '.join(missing)}.")
+    if conf_level == "LOW":
+        source_note_parts.append(
+            "NEMA DOVOLJNO IZVORA."
+            " Odgovori ograniceno i upozori"
+            " korisnika.")
+    if conf_level == "LIMITED":
+        source_note_parts.append(
+            "OGRANICENI IZVORI."
+            " Budi oprezan i navedi ogranicenja.")
+    source_note = (
+        " ".join(source_note_parts)
+        if source_note_parts
+        else "Izvori izgledaju adekvatno.")
+
+    # Ako nema traženog zakona i nema rezultata
     if missing and not results:
         ans = (
             "## Odgovor\n"
             + ", ".join(missing)
             + " nisu u bazi.\n\n"
-            "## Korisceni izvori\nNijedan.\n\n"
-            "## Napomena\nKontaktirajte admina.")
+            "## Korišćeni izvori\nNijedan.\n\n"
+            "## Pouzdanost\nNiska — ključni"
+            " izvor nije u bazi.\n\n"
+            "## Napomena\nKontaktirajte admina"
+            " da doda potrebne zakone.")
         if ji:
             ans += (f"\n\nNapomena: '{ji}'"
-                    " - druga drzava.")
-        return ans, "INSUFFICIENT_SOURCES", results
+                    " — druga država.")
+        return ans, "LOW", results
 
-    if (conf == "INSUFFICIENT_SOURCES"
-            and not case_doc_vs):
-        ans = (
-            "## Odgovor\n"
-            "Nisam pronasao odredbe.\n\n"
-            "## Korisceni izvori\nNijedan.\n\n"
-            "## Napomena\nKonsultujte advokata.")
+    # Ako je pouzdanost niska i nema dokumenata
+    if conf_level == "LOW" and not case_doc_vs:
+        ans = "## Odgovor\n"
+        if missing_key:
+            ans += (
+                "U bazi nisu pronađeni dovoljno"
+                " relevantni izvori za potpuno"
+                " pouzdan odgovor.\n\n"
+                f"**Nedostaje ključni propis:**"
+                f" {', '.join(missing_key)}\n\n")
+        else:
+            ans += (
+                "Nisu pronađene odgovarajuće"
+                " odredbe u bazi zakona.\n\n")
+        ans += (
+            "## Korišćeni izvori\nNijedan"
+            " relevantan.\n\n"
+            "## Pouzdanost\nNiska\n\n"
+            "## Napomena\n"
+            "Potrebna je dopuna baze ili"
+            " dodatna provera izvora."
+            " Konsultujte advokata.")
         if missing:
-            ans += ("\n\nNapomena: "
+            ans += ("\n\n"
                     + ", ".join(missing)
-                    + " - nije u bazi.")
+                    + " — nije u bazi.")
         if ji:
             ans += (f"\n\nNapomena: '{ji}'"
-                    " - druga drzava.")
-        return ans, conf, results
+                    " — druga država.")
+        return ans, conf_level, results
 
     extra = ""
     if ji:
@@ -1406,7 +1463,9 @@ def query_ai(question, case_doc_vs=None):
 
     prompt = SYSTEM_PROMPT.format(
         law_context=ctx, doc_context=doc_ctx,
-        question=question + extra)
+        question=question + extra,
+        detected_area=area_str,
+        source_note=source_note)
     try:
         llm = ChatOpenAI(
             model="gpt-4o-mini",
@@ -1415,17 +1474,35 @@ def query_ai(question, case_doc_vs=None):
         ans = llm.invoke(
             [HumanMessage(content=prompt)]).content
         ans = verify_citations(ans, results)
-        labels = {
-            "GROUNDED": "UTEMELJEN",
-            "PARTIALLY_GROUNDED": "DELIMICNO",
-            "INSUFFICIENT_SOURCES": "NEDOVOLJNO"}
+
+        # Dodaj pouzdanost na kraj
+        conf_labels = {
+            "HIGH": "Visoka",
+            "MEDIUM": "Srednja",
+            "LIMITED": "Ograničena",
+            "LOW": "Niska"}
+        conf_icons = {
+            "HIGH": "🟢",
+            "MEDIUM": "🟡",
+            "LIMITED": "🟠",
+            "LOW": "🔴"}
+        icon = conf_icons.get(conf_level, "⚪")
+        label = conf_labels.get(
+            conf_level, "Nepoznata")
+
         ans += (
-            "\n\n---\n**Pouzdanost:** "
-            + labels.get(conf, ''))
-        return ans, conf, results
+            f"\n\n---\n"
+            f"**Pouzdanost:** {icon}"
+            f" {label}\n\n"
+            f"*{conf_note}*")
+        if missing_key:
+            ans += (
+                f"\n\n**Nedostaje u bazi:**"
+                f" {', '.join(missing_key)}")
+        return ans, conf_level, results
     except Exception as e:
-        return (f"Greska: {e}",
-                "INSUFFICIENT_SOURCES", results)
+        return (f"Greška: {e}",
+                "LOW", results)
      # ═══════════════════════════════════════════════════════════════
 #  PREDMETI + DOKUMENTI + POMOCNE
 # ═══════════════════════════════════════════════════════════════

@@ -1147,17 +1147,86 @@ def format_results(results):
     return "\n\n".join(parts)
 
 
-def determine_confidence(results, query):
+def determine_confidence(results, query,
+                         areas=None):
+    """4 nivoa pouzdanosti sa proverom oblasti
+    i ključnog zakona."""
     if not results:
-        return "INSUFFICIENT_SOURCES"
-    top = results[0].get('score', 0)
+        return "LOW", "Nisu pronađeni izvori."
+
+    # Bazične metrike
+    top_score = results[0].get('score', 0)
+    total = len(results)
+    penalized = sum(
+        1 for r in results
+        if r.get('_penalized'))
+    clean = total - penalized
     hq = sum(1 for r in results
-             if r.get('score', 0) >= 80)
-    if hq >= 2 and top >= 100:
-        return "GROUNDED"
-    if hq >= 1 or (len(results) >= 3 and top >= 40):
-        return "PARTIALLY_GROUNDED"
-    return "INSUFFICIENT_SOURCES"
+             if r.get('score', 0) >= 80
+             and not r.get('_penalized'))
+
+    # Provera ključnog zakona
+    has_key = True
+    missing_laws = []
+    if areas:
+        has_key, missing_laws = \
+            check_key_law_present(areas, results)
+
+    # Provera oblasti — koliko rezultata je
+    # iz prave oblasti
+    area_match = 0
+    if areas:
+        for r in results:
+            if r.get('area') in areas:
+                area_match += 1
+
+    # VISOKA: mnogo dobrih izvora + ključni zakon
+    # + većina iz prave oblasti
+    if (hq >= 3 and top_score >= 100
+            and has_key
+            and area_match >= 2):
+        return ("HIGH",
+                "Odgovor je utemeljen u izvorima"
+                " iz odgovarajuće oblasti.")
+
+    # SREDNJA: ima dobrih izvora ali možda fali
+    # ključni zakon ili oblast nije savršena
+    if (hq >= 1 and top_score >= 60
+            and (has_key or area_match >= 1)):
+        note = ""
+        if not has_key and missing_laws:
+            note = (
+                f" Ključni izvor"
+                f" ({', '.join(missing_laws)})"
+                f" nije pronađen u bazi.")
+        return ("MEDIUM",
+                "Odgovor je delimično utemeljen"
+                " u izvorima." + note)
+
+    # OGRANIČENA: ima nešto ali nije ubedljivo
+    if clean >= 1 and top_score >= 30:
+        note = ""
+        if not has_key and missing_laws:
+            note = (
+                f" Ključni izvor"
+                f" ({', '.join(missing_laws)})"
+                f" nije pronađen u bazi.")
+        if penalized > clean:
+            note += (
+                " Većina pronađenih izvora"
+                " je iz druge oblasti prava.")
+        return ("LIMITED",
+                "Pronađeni su ograničeni"
+                " izvori." + note)
+
+    # NISKA: nema relevantnih izvora
+    note = "Nisu pronađeni relevantni izvori."
+    if missing_laws:
+        note += (
+            f" Ključni izvor"
+            f" ({', '.join(missing_laws)})"
+            f" nije u bazi.")
+    return ("LOW", note)
 
 
 def verify_citations(resp, results):

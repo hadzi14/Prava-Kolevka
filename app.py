@@ -1675,8 +1675,9 @@ def render_login():
     st.markdown(
         '<div class="login-box">'
         '<div class="login-logo">'
-        '<div class="icon">&#9878;</div>'
-        '<h1>Prava Kolevka</h1>'
+        f'{SCALE_SVG_LOGIN}'
+        '<h1><span class="brand-prava">Prava</span> '
+        '<span class="brand-kolevka">Kolevka</span></h1>'
         '<p>Pravni AI za Kosovo</p>'
         '</div></div>',
         unsafe_allow_html=True)
@@ -1713,9 +1714,8 @@ def render_login():
                         st.rerun()
                     else:
                         st.error(
-                            "Pogresni podaci.")
+                            "Pogrešni podaci.")
     render_footer()
-
 
 def do_logout():
     uid = None
@@ -1742,16 +1742,17 @@ def render_admin():
     st.markdown(
         '<div class="top-bar">'
         '<div style="display:flex;'
-        'align-items:center;gap:12px">'
-        '<h2>Prava <span class="gold">'
-        'Kolevka</span> - Admin</h2>'
+        'align-items:center;gap:8px">'
+        f'{SCALE_SVG_HEADER}'
+        '<h2>Prava <span class="accent">'
+        'Kolevka</span></h2>'
         '</div>'
-        '<span class="badge badge-gold">'
+        '<span class="badge badge-active">'
         'ADMIN</span></div>',
         unsafe_allow_html=True)
     t1, t2, t3, t4, t5 = st.tabs(
         ["Pregled", "Zakoni", "Korisnici",
-         "Uplate", "Podesavanja"])
+         "Uplate", "Podešavanja"])
     with t1:
         admin_dashboard()
     with t2:

@@ -1860,6 +1860,568 @@ def admin_dashboard():
         except Exception:
             pass
 
+def admin_laws():
+    st.markdown("### Zakoni")
+
+    # ═══ SAVE AKCIJA — novi zakon (PRE WIDGETA) ═══
+    if st.session_state.get("_save_law"):
+        st.session_state["_save_law"] = False
+        m = st.session_state.get("preview_meta")
+        if m and m.get("name_sr") and m.get("full_text"):
+            lid, n, w = save_law_to_db(
+                m.get("name_sr", ""),
+                m.get("name_al", ""),
+                m.get("short_name", ""),
+                m.get("law_number", ""),
+                m.get("area", "Ostalo"),
+                m.get("gazette_info", ""),
+                m.get("effective_date", ""),
+                "sr",
+                m.get("full_text", ""),
+                m.get("hierarchy_level", 3))
+            if lid:
+                st.success(
+                    f"Zakon sačuvan: {n} članova")
+                for ww in w:
+                    st.warning(ww)
+                st.session_state.preview_articles = None
+                st.session_state.preview_warnings = None
+                st.session_state.preview_meta = None
+                st.rerun()
+            else:
+                st.error(
+                    "Greška pri čuvanju: "
+                    + "; ".join(w))
+        else:
+            st.error("Nedostaju podaci za čuvanje.")
+
+    # ═══ SAVE AKCIJA — editovanje zakona ═══
+    if st.session_state.get("_save_edit"):
+        st.session_state["_save_edit"] = False
+        ed = st.session_state.get("_edit_data")
+        if ed:
+            try:
+                with get_db() as conn:
+                    conn.execute(
+                        "UPDATE laws SET"
+                        " name_sr=?, name_al=?,"
+                        " short_name=?,"
+                        " law_number=?, area=?,"
+                        " gazette_info=?,"
+                        " effective_date=?,"
+                        " hierarchy_level=?,"
+                        " updated_at=datetime('now')"
+                        " WHERE id=?",
+                        (ed["name_sr"],
+                         ed["name_al"],
+                         ed["short_name"],
+                         ed["law_number"],
+                         ed["area"],
+                         ed["gazette_info"],
+                         ed["effective_date"],
+                         ed["hierarchy_level"],
+                         ed["law_id"]))
+                st.success("Zakon ažuriran.")
+                st.session_state["_edit_data"] = None
+                st.session_state.law_vs = None
+                st.session_state.law_vs_version = ""
+                st.rerun()
+            except Exception as e:
+                st.error(f"Greška: {e}")
+
+    # ═══ SAVE AKCIJA — editovanje teksta ═══
+    if st.session_state.get("_save_retext"):
+        st.session_state["_save_retext"] = False
+        rt = st.session_state.get("_retext_data")
+        if rt:
+            try:
+                with get_db() as conn:
+                    conn.execute(
+                        "UPDATE laws SET"
+                        " full_text=?,"
+                        " updated_at=datetime('now')"
+                        " WHERE id=?",
+                        (rt["full_text"],
+                         rt["law_id"]))
+                    conn.execute(
+                        "DELETE FROM law_articles"
+                        " WHERE law_id=?",
+                        (rt["law_id"],))
+                    articles, _ = parse_articles(
+                        rt["full_text"])
+                    for art in articles:
+                        conn.execute(
+                            "INSERT INTO law_articles"
+                            " (law_id,article_number,"
+                            "paragraph_number,"
+                            "title,content)"
+                            " VALUES(?,?,?,?,?)",
+                            (rt["law_id"],
+                             art["article_number"],
+                             art.get(
+                                 "paragraph_number",
+                                 ""),
+                             art.get("title", ""),
+                             art["content"]))
+                st.success(
+                    f"Tekst ažuriran:"
+                    f" {len(articles)} članova")
+                st.session_state[
+                    "_retext_data"] = None
+                st.session_state.law_vs = None
+                st.session_state.law_vs_version = ""
+                st.rerun()
+            except Exception as e:
+                st.error(f"Greška: {e}")
+
+    # ═══ DODAJ NOVI ZAKON ═══
+    with st.expander("Dodaj novi zakon",
+                     expanded=False):
+        method = st.radio(
+            "Način unosa",
+            ["Tekst", "PDF"],
+            horizontal=True,
+            key="law_input_method")
+
+        c1, c2 = st.columns(2)
+        with c1:
+            name_sr = st.text_input(
+                "Naziv zakona", key="al_name")
+            short = st.text_input(
+                "Skraćenica", key="al_short")
+            hlevel = st.selectbox(
+                "Pravna snaga",
+                list(HIERARCHY_LEVELS.keys()),
+                index=2,
+                format_func=lambda x: (
+                    HIERARCHY_LEVELS[x]['name']),
+                key="al_hl")
+            area = st.selectbox(
+                "Oblast prava", LEGAL_AREAS,
+                key="al_area")
+            gazette = st.text_input(
+                "Službeni glasnik / izvor",
+                key="al_gazette")
+        with c2:
+            lawnum = st.text_input(
+                "Broj zakona", key="al_num")
+            name_al = st.text_input(
+                "Naziv na albanskom",
+                key="al_nameal")
+            eff_date = st.text_input(
+                "Datum stupanja na snagu",
+                key="al_effdate")
+
+        full_text = ""
+        if method == "PDF":
+            pdf_file = st.file_uploader(
+                "Upload PDF zakona",
+                type=["pdf"],
+                key="al_pdf")
+            if pdf_file is not None:
+                pkey = (f"_pdf_text_{pdf_file.name}"
+                        f"_{pdf_file.size}")
+                if pkey not in st.session_state:
+                    with st.spinner("Čitam PDF..."):
+                        st.session_state[pkey] = \
+                            extract_pdf(pdf_file)
+                full_text = st.session_state.get(
+                    pkey, "")
+                if full_text:
+                    if len(full_text) < 100:
+                        st.warning(
+                            "PDF sadrži vrlo malo"
+                            " teksta. Moguće da je"
+                            " skeniran.")
+                    else:
+                        st.success(
+                            f"Izvučeno"
+                            f" {len(full_text)}"
+                            f" karaktera iz PDF-a")
+                    with st.expander(
+                            "Prikaži izvučeni"
+                            " tekst"):
+                        st.text(
+                            full_text[:3000])
+                        if len(full_text) > 3000:
+                            st.info(
+                                f"...i još "
+                                f"{len(full_text)-3000}"
+                                f" karaktera")
+                else:
+                    st.error(
+                        "Nije moguće pročitati"
+                        " tekst iz PDF-a.")
+        else:
+            full_text = st.text_area(
+                "Tekst zakona", height=400,
+                key="al_text")
+
+        if st.button("Preview",
+                     disabled=not full_text,
+                     use_container_width=True,
+                     key="preview_btn"):
+            arts, warns = parse_articles(full_text)
+            st.session_state.preview_articles = arts
+            st.session_state.preview_warnings = warns
+            st.session_state.preview_meta = {
+                "name_sr": name_sr,
+                "name_al": name_al,
+                "short_name": short,
+                "law_number": lawnum,
+                "area": area,
+                "hierarchy_level": hlevel,
+                "gazette_info": gazette,
+                "effective_date": eff_date,
+                "full_text": full_text}
+
+        if st.session_state.get(
+                "preview_articles") is not None:
+            arts = st.session_state.preview_articles
+            warns = st.session_state.get(
+                "preview_warnings", [])
+            st.success(
+                f"{len(arts)} članova pronađeno")
+            for w in (warns or []):
+                st.warning(w)
+            for a in arts[:5]:
+                t = (f" - {a['title']}"
+                     if a.get('title') else "")
+                st.text(
+                    f"Čl. {a['article_number']}"
+                    f"{t}: "
+                    f"{safe_text(a['content'][:200])}"
+                    "...")
+            if len(arts) > 5:
+                st.info(
+                    f"...i još {len(arts) - 5}"
+                    " članova")
+            if st.button(
+                    "Sačuvaj zakon",
+                    use_container_width=True,
+                    type="primary",
+                    key="save_law_btn"):
+                st.session_state["_save_law"] = True
+                st.rerun()
+
+    # ═══ EXPORT ═══
+    with st.expander("Export"):
+        if st.button("Izvezi sve (JSON)"):
+            data = export_laws_json()
+            st.download_button(
+                "Preuzmi",
+                data=data,
+                file_name=(
+                    f"backup_{date.today()}.json"),
+                mime="application/json")
+
+    # ═══ PRETRAGA ZAKONA ═══
+    st.markdown("### Zakoni u bazi")
+
+    search_q = st.text_input(
+        "Pretraži zakone",
+        placeholder=(
+            "Naziv, skraćenica, broj,"
+            " oblast..."),
+        key="admin_law_search")
+
+    try:
+        with get_db() as conn:
+            if search_q and search_q.strip():
+                sq = f"%{search_q.strip()}%"
+                laws = conn.execute(
+                    "SELECT l.id, l.name_sr,"
+                    " l.name_al, l.short_name,"
+                    " l.law_number, l.area,"
+                    " l.hierarchy_level,"
+                    " l.gazette_info,"
+                    " l.effective_date,"
+                    " COUNT(la.id) as num_articles"
+                    " FROM laws l"
+                    " LEFT JOIN law_articles la"
+                    " ON l.id=la.law_id"
+                    " WHERE l.is_active=1"
+                    " AND (l.name_sr LIKE ?"
+                    " OR l.name_al LIKE ?"
+                    " OR l.short_name LIKE ?"
+                    " OR l.law_number LIKE ?"
+                    " OR l.area LIKE ?"
+                    " OR l.gazette_info LIKE ?)"
+                    " GROUP BY l.id"
+                    " ORDER BY l.hierarchy_level,"
+                    " l.name_sr",
+                    (sq, sq, sq, sq, sq, sq)
+                ).fetchall()
+                st.info(
+                    f"Pronađeno: {len(laws)}"
+                    f" zakona za \"{search_q}\"")
+            else:
+                laws = conn.execute(
+                    "SELECT l.id, l.name_sr,"
+                    " l.name_al, l.short_name,"
+                    " l.law_number, l.area,"
+                    " l.hierarchy_level,"
+                    " l.gazette_info,"
+                    " l.effective_date,"
+                    " COUNT(la.id) as num_articles"
+                    " FROM laws l"
+                    " LEFT JOIN law_articles la"
+                    " ON l.id=la.law_id"
+                    " WHERE l.is_active=1"
+                    " GROUP BY l.id"
+                    " ORDER BY l.hierarchy_level,"
+                    " l.name_sr").fetchall()
+    except Exception:
+        laws = []
+
+    if not laws:
+        st.info("Nema zakona u bazi.")
+        return
+
+    cur_lvl = None
+    for law in laws:
+        law = dict(law)
+        hl = law.get('hierarchy_level', 3)
+        hi = HIERARCHY_LEVELS.get(
+            hl, HIERARCHY_LEVELS[3])
+        if hl != cur_lvl:
+            cur_lvl = hl
+            st.markdown(f"**{hi['name']}**")
+        na = law.get('num_articles', 0)
+        sn = safe_text(
+            law.get('short_name', ''))
+        ln = safe_text(
+            law.get('law_number', ''))
+        ar = safe_text(law.get('area', ''))
+        name = safe_text(
+            law.get('name_sr', ''))
+        gi = safe_text(
+            law.get('gazette_info', ''))
+        info_parts = []
+        if ln:
+            info_parts.append(ln)
+        if sn:
+            info_parts.append(sn)
+        if ar:
+            info_parts.append(ar)
+        if gi:
+            info_parts.append(gi)
+        info_parts.append(f"{na} čl.")
+        info_str = " | ".join(info_parts)
+        lid = law["id"]
+
+        with st.expander(
+                f"{name} — {info_str}"):
+
+            # ═══ TAB: Info + Edit ═══
+            et1, et2, et3 = st.tabs(
+                ["Info", "Izmeni podatke",
+                 "Izmeni tekst"])
+
+            with et1:
+                st.markdown(
+                    f"**Pravna snaga:**"
+                    f" {hi['name']}")
+                if law.get('gazette_info'):
+                    st.markdown(
+                        f"**Izvor:**"
+                        f" {law['gazette_info']}")
+                if law.get('effective_date'):
+                    st.markdown(
+                        f"**Stupanje na snagu:**"
+                        f" {law['effective_date']}")
+                if law.get('name_al'):
+                    st.markdown(
+                        f"**Albanski:**"
+                        f" {law['name_al']}")
+                st.markdown(
+                    f"**Članova:** {na}")
+                try:
+                    with get_db() as conn:
+                        arts = conn.execute(
+                            "SELECT"
+                            " article_number,"
+                            " title, content"
+                            " FROM law_articles"
+                            " WHERE law_id=?"
+                            " ORDER BY CAST("
+                            "article_number"
+                            " AS INTEGER)"
+                            " LIMIT 5",
+                            (lid,)).fetchall()
+                    for a in arts:
+                        t = (f" - {a['title']}"
+                             if a['title']
+                             else "")
+                        st.text(
+                            f"Čl."
+                            f" {a['article_number']}"
+                            f"{t}:"
+                            f" {safe_text(a['content'][:150])}")
+                    if na > 5:
+                        st.info(
+                            f"...i još"
+                            f" {na - 5} čl.")
+                except Exception:
+                    pass
+
+                b1, b2 = st.columns(2)
+                with b1:
+                    if st.button(
+                            "Ponovo obradi",
+                            key=f"rep_{lid}"):
+                        n, w = reparse_law(lid)
+                        st.success(f"{n} čl.")
+                        for ww in w:
+                            st.warning(ww)
+                        st.rerun()
+                with b2:
+                    if st.button(
+                            "Obriši",
+                            key=f"del_{lid}"):
+                        with get_db() as conn:
+                            conn.execute(
+                                "DELETE FROM"
+                                " law_articles"
+                                " WHERE"
+                                " law_id=?",
+                                (lid,))
+                            conn.execute(
+                                "DELETE FROM"
+                                " laws"
+                                " WHERE id=?",
+                                (lid,))
+                        st.session_state \
+                            .law_vs = None
+                        st.session_state \
+                            .law_vs_version = ""
+                        st.rerun()
+
+            with et2:
+                ec1, ec2 = st.columns(2)
+                with ec1:
+                    ed_name = st.text_input(
+                        "Naziv",
+                        value=law.get(
+                            'name_sr', ''),
+                        key=f"edn_{lid}")
+                    ed_short = st.text_input(
+                        "Skraćenica",
+                        value=law.get(
+                            'short_name', ''),
+                        key=f"eds_{lid}")
+                    cur_hl = law.get(
+                        'hierarchy_level', 3)
+                    hl_keys = list(
+                        HIERARCHY_LEVELS.keys())
+                    hl_idx = (
+                        hl_keys.index(cur_hl)
+                        if cur_hl in hl_keys
+                        else 2)
+                    ed_hl = st.selectbox(
+                        "Pravna snaga",
+                        hl_keys,
+                        index=hl_idx,
+                        format_func=lambda x: (
+                            HIERARCHY_LEVELS[x]
+                            ['name']),
+                        key=f"edh_{lid}")
+                    cur_area = law.get(
+                        'area', 'Ostalo')
+                    area_idx = (
+                        LEGAL_AREAS.index(
+                            cur_area)
+                        if cur_area
+                        in LEGAL_AREAS
+                        else len(LEGAL_AREAS)-1)
+                    ed_area = st.selectbox(
+                        "Oblast",
+                        LEGAL_AREAS,
+                        index=area_idx,
+                        key=f"eda_{lid}")
+                with ec2:
+                    ed_num = st.text_input(
+                        "Broj zakona",
+                        value=law.get(
+                            'law_number', ''),
+                        key=f"ednum_{lid}")
+                    ed_al = st.text_input(
+                        "Naziv na albanskom",
+                        value=law.get(
+                            'name_al', ''),
+                        key=f"edal_{lid}")
+                    ed_gaz = st.text_input(
+                        "Službeni glasnik",
+                        value=law.get(
+                            'gazette_info', ''),
+                        key=f"edg_{lid}")
+                    ed_eff = st.text_input(
+                        "Datum stupanja"
+                        " na snagu",
+                        value=law.get(
+                            'effective_date',
+                            ''),
+                        key=f"ede_{lid}")
+                if st.button(
+                        "Sačuvaj izmene",
+                        key=f"edsave_{lid}",
+                        use_container_width=True,
+                        type="primary"):
+                    st.session_state[
+                        "_edit_data"] = {
+                        "law_id": lid,
+                        "name_sr": ed_name,
+                        "name_al": ed_al,
+                        "short_name": ed_short,
+                        "law_number": ed_num,
+                        "area": ed_area,
+                        "gazette_info": ed_gaz,
+                        "effective_date": ed_eff,
+                        "hierarchy_level": ed_hl}
+                    st.session_state[
+                        "_save_edit"] = True
+                    st.rerun()
+
+            with et3:
+                st.warning(
+                    "Izmena teksta će ponovo"
+                    " obraditi sve članove.")
+                try:
+                    with get_db() as conn:
+                        ft = conn.execute(
+                            "SELECT full_text"
+                            " FROM laws"
+                            " WHERE id=?",
+                            (lid,)
+                        ).fetchone()
+                    cur_text = (
+                        ft["full_text"]
+                        if ft else "")
+                except Exception:
+                    cur_text = ""
+                new_text = st.text_area(
+                    "Tekst zakona",
+                    value=cur_text,
+                    height=400,
+                    key=f"edtxt_{lid}")
+                if st.button(
+                        "Sačuvaj novi tekst",
+                        key=f"edtxtsave_{lid}",
+                        use_container_width=True,
+                        type="primary"):
+                    if new_text.strip():
+                        st.session_state[
+                            "_retext_data"] = {
+                            "law_id": lid,
+                            "full_text": new_text}
+                        st.session_state[
+                            "_save_retext"] = True
+                        st.rerun()
+                    else:
+                        st.error(
+                            "Tekst ne može"
+                            " biti prazan.")
+
 def admin_users():
     st.markdown("### Korisnici")
     with st.expander("Dodaj"):

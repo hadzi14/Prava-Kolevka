@@ -866,15 +866,18 @@ def get_law_vector_store():
 # ═══════════════════════════════════════════════════════════════
 
 def detect_legal_area(q):
-    q = q.lower()
+    q_lower = q.lower()
     det = []
     for area, kws in AREA_KEYWORDS.items():
-        sc = sum(1 for kw in kws if kw in q)
+        sc = 0
+        for kw in kws:
+            if kw in q_lower:
+                # Duže ključne reči nose više
+                sc += 1 + (len(kw) > 6)
         if sc >= 1:
             det.append((area, sc))
     det.sort(key=lambda x: x[1], reverse=True)
     return [a for a, _ in det[:3]]
-
 
 def detect_target_law(q):
     q = q.lower()
@@ -891,6 +894,63 @@ def detect_jurisdiction_issue(q):
         if m in q:
             return m
     return None
+
+def check_key_law_present(areas, results):
+    """Proverava da li ključni zakon za
+    detektovanu oblast postoji u rezultatima."""
+    if not areas or not results:
+        return False, []
+    missing = []
+    for area in areas[:2]:
+        akl = AREA_KEY_LAWS.get(area)
+        if not akl:
+            continue
+        found = False
+        for r in results:
+            rname = (
+                r.get('name_sr', '') or ''
+            ).lower()
+            rshort = (
+                r.get('short_name', '') or ''
+            ).lower()
+            for kl in akl["laws"]:
+                if kl in rname or kl in rshort:
+                    found = True
+                    break
+            if found:
+                break
+        if not found:
+            missing.append(akl["label"])
+    has_key = len(missing) == 0
+    return has_key, missing
+
+
+def filter_irrelevant_sources(results, areas):
+    """Penalizuje izvore iz nekompatibilne
+    oblasti prava."""
+    if not areas or not results:
+        return results
+    primary_area = areas[0]
+    akl = AREA_KEY_LAWS.get(primary_area)
+    if not akl:
+        return results
+    incomp = set(akl.get("incompatible", []))
+    if not incomp:
+        return results
+    filtered = []
+    for r in results:
+        r_area = r.get('area', '')
+        if r_area in incomp:
+            # Zadrži ali snizi score drastično
+            r = dict(r)
+            r['score'] = max(1,
+                             r.get('score', 0) // 5)
+            r['_penalized'] = True
+        filtered.append(r)
+    filtered.sort(
+        key=lambda x: x.get('score', 0),
+        reverse=True)
+    return filtered
 
 
 def search_laws(query, max_results=15):

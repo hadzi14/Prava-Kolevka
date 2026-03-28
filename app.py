@@ -176,6 +176,74 @@ AREA_KEYWORDS = {
         "ustav", "ustavni", "osnovna prava",
         "ljudska prava", "slobode", "ustavni sud"],
 }
+AREA_KEY_LAWS = {
+    "Radno pravo": {
+        "laws": ["zakon o radu", "zor"],
+        "label": "Zakon o radu",
+        "incompatible": [
+            "Krivično pravo",
+            "Krivični postupak",
+            "Prekršajno pravo"],
+    },
+    "Krivično pravo": {
+        "laws": ["krivični zakonik", "kz",
+                 "krivicni zakonik"],
+        "label": "Krivični zakonik",
+        "incompatible": [
+            "Radno pravo", "Porodično pravo",
+            "Parnični postupak"],
+    },
+    "Krivični postupak": {
+        "laws": ["zakonik o krivičnom postupku",
+                 "zakon o krivičnom postupku",
+                 "zkp", "zkpk"],
+        "label": "Zakonik o krivičnom postupku",
+        "incompatible": [
+            "Radno pravo", "Porodično pravo",
+            "Parnični postupak"],
+    },
+    "Građansko pravo": {
+        "laws": ["zakon o obligacionim odnosima",
+                 "zoo"],
+        "label": "Zakon o obligacionim odnosima",
+        "incompatible": [
+            "Krivično pravo",
+            "Krivični postupak"],
+    },
+    "Obligaciono pravo": {
+        "laws": ["zakon o obligacionim odnosima",
+                 "zoo"],
+        "label": "Zakon o obligacionim odnosima",
+        "incompatible": [
+            "Krivično pravo",
+            "Krivični postupak"],
+    },
+    "Parnični postupak": {
+        "laws": ["zakon o parničnom postupku",
+                 "zpp", "zppk"],
+        "label": "Zakon o parničnom postupku",
+        "incompatible": [
+            "Krivični postupak"],
+    },
+    "Porodično pravo": {
+        "laws": ["porodični zakon", "pz"],
+        "label": "Porodični zakon",
+        "incompatible": [
+            "Krivično pravo",
+            "Krivični postupak"],
+    },
+    "Upravno pravo": {
+        "laws": ["zakon o upravnom postupku",
+                 "zup"],
+        "label": "Zakon o upravnom postupku",
+        "incompatible": [],
+    },
+    "Ustavno pravo": {
+        "laws": ["ustav", "ustav kosova"],
+        "label": "Ustav Kosova",
+        "incompatible": [],
+    },
+}
 
 SHORTNAME_MAP = {
     "kz": ["Krivični zakonik"],

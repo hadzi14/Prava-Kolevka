@@ -1137,7 +1137,7 @@ def search_laws(query, max_results=15):
     except Exception as e:
         st.error(f"Greska pretrage: {e}")
 
-       vs = get_law_vector_store()
+    vs = get_law_vector_store()
     if vs:
         try:
             for doc, dist in vs.similarity_search_with_score(query, k=15):

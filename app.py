@@ -1137,32 +1137,24 @@ def search_laws(query, max_results=15):
     except Exception as e:
         st.error(f"Greska pretrage: {e}")
 
-    vs = get_law_vector_store()
+       vs = get_law_vector_store()
     if vs:
         try:
-            for doc, dist in \
-                    vs.similarity_search_with_score(
-                        query, k=15):
+            for doc, dist in vs.similarity_search_with_score(query, k=15):
                 m = doc.metadata
                 if dist < 1.3:
-                    sc = max(
-                        5, int(85 * (1 - dist / 1.3)))
+                    sc = max(5, int(85 * (1 - dist / 1.3)))
                     r = {k: m.get(k, '') for k in [
-                        'article_number',
-                        'paragraph_number',
-                        'title', 'content',
-                        'name_sr', 'short_name',
-                        'law_number', 'area',
-                        'hierarchy_level']}
+                        'article_number', 'paragraph_number',
+                        'title', 'content', 'name_sr', 'short_name',
+                        'law_number', 'area', 'hierarchy_level']}
                     if not r['content']:
                         r['content'] = doc.page_content
-                    if (t_areas
-                            and r.get('area')
-                            in t_areas):
+                    if t_areas and r.get('area') in t_areas:
                         sc += 15
                     add(r, sc)
-            except Exception:
-                pass
+        except Exception:
+            pass
 
     sorted_results = sorted(
         rd.values(),

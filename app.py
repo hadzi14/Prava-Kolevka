@@ -1164,10 +1164,14 @@ def search_laws(query, max_results=15):
         except Exception:
             pass
 
-    return sorted(
+       sorted_results = sorted(
         rd.values(),
         key=lambda x: x.get('score', 0),
         reverse=True)[:max_results]
+    if t_areas:
+        sorted_results = filter_irrelevant_sources(
+            sorted_results, t_areas)
+    return sorted_results
 
 
 def format_results(results):

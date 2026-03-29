@@ -1161,7 +1161,7 @@ def search_laws(query, max_results=15):
                             in t_areas):
                         sc += 15
                     add(r, sc)
-               except Exception:
+                      except Exception:
             pass
 
     sorted_results = sorted(

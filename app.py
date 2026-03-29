@@ -3210,7 +3210,6 @@ def _ask_case(case_id, question, user):
         user["id"], "query",
         f"[{conf}] case={case_id}")
 
-
 def tab_search():
     st.markdown(
         '<div class="pk-card-gold">'

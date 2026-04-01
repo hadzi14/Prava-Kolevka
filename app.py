@@ -3223,11 +3223,12 @@ def admin_laws():
                                         type_labels
                                         .get(x, x)),
                                     key="al_doctype")
+                        # Default vrednosti — UVEK
+                        parent_id = None
+                        rel_type = "none"
 
                         # Povezivanje sa osnovnim
                         # zakonom
-                        parent_id = None
-                        rel_type = "none"
                         if doc_type_sel in (
                                 "amendment_law",
                                 "bylaw"):

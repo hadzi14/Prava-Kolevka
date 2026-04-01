@@ -2999,9 +2999,9 @@ def admin_laws():
                 "is_consolidated": False,
             }
            for m in data:
-    parent_id = m.get("parent_law_id")
-    if parent_id:
-        law_data["parent_law_id"] = parent_id
+               parent_id = m.get("parent_law_id")
+           if parent_id:
+            law_data["parent_law_id"] = parent_id
 
             articles, warnings = parse_articles(
                 m.get("full_text", ""))

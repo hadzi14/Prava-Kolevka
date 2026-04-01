@@ -164,6 +164,7 @@ def sb_get_laws_summary():
         result.append(law)
     return result
 
+
 def sb_search_articles(keyword):
     """Pretražuje članke po ključnoj reči
     u content ili title."""
@@ -244,6 +245,7 @@ def sb_find_laws_by_name(name):
     ).execute()
     return r.data or []
 
+
 def sb_test_connection():
     """Testira konekciju i vraća status."""
     try:
@@ -281,8 +283,12 @@ def sb_test_connection():
         return result
     except Exception as e:
         return {
+            "connected": False,
+            "error": str(e)
+        }
 
-            def sb_search_articles_multi(keywords, law_ids=None):
+
+def sb_search_articles_multi(keywords, law_ids=None):
     """Pretražuje članke po više ključnih reči.
     Vraća sve članke koji matchuju bar jednu reč."""
     sb = get_sb()
@@ -305,9 +311,9 @@ def sb_test_connection():
             all_results[aid]["_matched_kw"].add(kw)
     # Konvertuj set u listu za dalju obradu
     result = list(all_results.values())
-    for r in result:
-        r["_match_count"] = len(r["_matched_kw"])
-        r["_matched_kw"] = list(r["_matched_kw"])
+    for r_item in result:
+        r_item["_match_count"] = len(r_item["_matched_kw"])
+        r_item["_matched_kw"] = list(r_item["_matched_kw"])
     return result
 
 
@@ -330,6 +336,3 @@ def sb_get_law_ids_by_area(area):
         "is_active", True).eq(
         "area", area).execute()
     return [l["id"] for l in (r.data or [])]
-            "connected": False,
-            "error": str(e)
-        }

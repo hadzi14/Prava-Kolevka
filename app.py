@@ -3000,7 +3000,7 @@ def admin_laws():
             }
             parent_id = m.get("parent_law_id")
             if parent_id:
-                law_data["parent_law_id"] = parent_id
+               law_data["parent_law_id"] = parent_id
 
             articles, warnings = parse_articles(
                 m.get("full_text", ""))

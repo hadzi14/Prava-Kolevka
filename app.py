@@ -10,7 +10,14 @@ from supabase_db import (
     sb_get_articles,
     sb_delete_law,
     sb_update_law,
-    sb_delete_articles
+    sb_delete_articles,
+    sb_search_articles,
+    sb_search_articles_by_number,
+    sb_get_law_basic,
+    sb_get_all_articles_with_laws,
+    sb_get_all_laws,
+    sb_find_laws_by_name,
+    sb_count_articles,
 )
 import streamlit as st
 import os, re, io, json, sqlite3, hashlib, secrets, base64

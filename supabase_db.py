@@ -336,3 +336,40 @@ def sb_get_law_ids_by_area(area):
         "is_active", True).eq(
         "area", area).execute()
     return [l["id"] for l in (r.data or [])]
+    def sb_find_parent_law(title_hint):
+    """Traži mogući osnovni zakon po nazivu."""
+    if not title_hint:
+        return []
+
+    sb = get_sb()
+    hint = title_hint.strip()
+
+    # Osnovno čišćenje čestih fraza kod novela/podzakonskih akata
+    lowered = hint.lower()
+    replacements = [
+        "zakon o izmenama i dopunama",
+        "izmene i dopune zakona",
+        "na osnovu",
+        "u skladu sa",
+        "administrativno uputstvo o",
+        "pravilnik o",
+    ]
+    for phrase in replacements:
+        lowered = lowered.replace(phrase, "")
+
+    cleaned_hint = lowered.strip()
+
+    # Ako je posle čišćenja ostalo premalo teksta, koristi originalni hint
+    search_value = cleaned_hint if len(cleaned_hint) >= 3 else hint
+
+    r = sb.table("laws").select(
+        "id, name_sr, short_name, law_number, area"
+    ).eq("is_active", True).eq(
+        "document_type", "law"
+    ).or_(
+        f"name_sr.ilike.%{search_value}%,"
+        f"short_name.ilike.%{search_value}%,"
+        f"law_number.ilike.%{search_value}%"
+    ).limit(10).execute()
+
+    return r.data or []

@@ -336,7 +336,9 @@ def sb_get_law_ids_by_area(area):
         "is_active", True).eq(
         "area", area).execute()
     return [l["id"] for l in (r.data or [])]
-    def sb_find_parent_law(title_hint):
+
+
+def sb_find_parent_law(title_hint):
     """Traži mogući osnovni zakon po nazivu."""
     if not title_hint:
         return []

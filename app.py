@@ -2461,6 +2461,33 @@ def admin_dashboard():
             (c4, str(na), "Ukupno članova")]:
         with col:
             st.metric(lbl, val)
+             # Test Supabase konekcije
+    with st.expander("Supabase status"):
+        if st.button("Testiraj konekciju",
+                     key="sb_test"):
+            try:
+                from supabase_db import (
+                    sb_test_connection)
+                status = sb_test_connection()
+                if status["connected"]:
+                    st.success(
+                        f"Povezano! "
+                        f"{status['laws_count']}"
+                        f" zakona, "
+                        f"{status['articles_count']}"
+                        f" članova")
+                    for l in status.get(
+                            "laws", []):
+                        st.text(l)
+                    st.text(
+                        status.get(
+                            "test_article", ""))
+                else:
+                    st.error(
+                        f"Greška: "
+                        f"{status.get('error')}")
+            except Exception as e:
+                st.error(f"{e}")
 
     # Statistika po pravnoj snazi
     st.markdown("### Pravni akti po vrsti")

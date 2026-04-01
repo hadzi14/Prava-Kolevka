@@ -2442,7 +2442,68 @@ def extract_pdf(file):
             if p.extract_text())
     except Exception:
         return ""
+def ai_extract_metadata(text_preview):
+    """AI ekstrakcija metapodataka iz teksta
+    prve strane PDF-a."""
+    if not OPENAI_API_KEY or not text_preview:
+        return None
 
+    prompt = """Analiziraj sledeći tekst sa prve strane pravnog dokumenta sa Kosova.
+Vrati ISKLJUČIVO validan JSON bez ikakvih komentara ili objašnjenja.
+
+Ako neki podatak nije pronađen, stavi null.
+Ne izmišljaj podatke koji ne postoje u tekstu.
+
+Vrati JSON sa ovim poljima:
+{
+  "title": "pun naziv dokumenta na srpskom ili originalnom jeziku",
+  "title_al": "naziv na albanskom ako postoji, inače null",
+  "short_name": "skraćenica ako je očigledna (npr. ZOR, ZOO, KZ), inače null",
+  "document_number": "broj dokumenta ako postoji (npr. 03/L-212), inače null",
+  "legal_area": "jedna od: Ustavno pravo, Krivično pravo, Krivični postupak, Građansko pravo, Parnični postupak, Upravno pravo, Radno pravo, Porodično pravo, Prekršajno pravo, Obligaciono pravo, Imovinsko pravo, Ostalo",
+  "gazette_info": "informacija o službenom glasniku ako postoji, inače null",
+  "effective_date": "datum stupanja na snagu ako postoji, inače null",
+  "document_type": "jedna od: law, amendment_law, bylaw, other",
+  "hierarchy_level": 3,
+  "is_amendment": false,
+  "is_bylaw": false,
+  "related_parent_title": "naziv osnovnog zakona ako je ovo izmena/dopuna ili podzakonski akt, inače null",
+  "relation_type": "jedna od: amends, issued_under, none"
+}
+
+PRAVILA ZA KLASIFIKACIJU:
+- Ako naslov sadrži "ZAKON O IZMENAMA" ili "IZMENA I DOPUNA" → document_type: "amendment_law", is_amendment: true
+- Ako naslov sadrži "ADMINISTRATIVNO UPUTSTVO" ili "UREDBA" ili "PRAVILNIK" → document_type: "bylaw", is_bylaw: true, hierarchy_level: 4
+- Ako je USTAV → hierarchy_level: 1
+- Ako je ZAKON → hierarchy_level: 3
+- Ako je MEĐUNARODNI SPORAZUM → hierarchy_level: 2
+
+TEKST DOKUMENTA:
+""" + text_preview[:3000]
+
+    try:
+        llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            api_key=OPENAI_API_KEY,
+            temperature=0.0, max_tokens=1000)
+        response = llm.invoke(
+            [HumanMessage(content=prompt)]).content
+
+        # Očisti response — izvuci JSON
+        response = response.strip()
+        if response.startswith("```"):
+            response = re.sub(
+                r'^```(?:json)?\s*', '',
+                response)
+            response = re.sub(
+                r'\s*```$', '', response)
+
+        meta = json.loads(response)
+        return meta
+    except json.JSONDecodeError:
+        return None
+    except Exception:
+        return None
 
 def ocr_image(image_bytes):
     b64 = base64.b64encode(

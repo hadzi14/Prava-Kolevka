@@ -281,6 +281,55 @@ def sb_test_connection():
         return result
     except Exception as e:
         return {
+
+            def sb_search_articles_multi(keywords, law_ids=None):
+    """Pretražuje članke po više ključnih reči.
+    Vraća sve članke koji matchuju bar jednu reč."""
+    sb = get_sb()
+    all_results = {}
+    for kw in keywords[:8]:
+        q = sb.table("law_articles").select(
+            "id, law_id, article_number,"
+            " title, content, order_index")
+        if law_ids:
+            q = q.in_("law_id", law_ids)
+        r = q.or_(
+            f"content.ilike.%{kw}%,"
+            f"title.ilike.%{kw}%"
+        ).limit(30).execute()
+        for art in (r.data or []):
+            aid = art["id"]
+            if aid not in all_results:
+                all_results[aid] = art
+                all_results[aid]["_matched_kw"] = set()
+            all_results[aid]["_matched_kw"].add(kw)
+    # Konvertuj set u listu za dalju obradu
+    result = list(all_results.values())
+    for r in result:
+        r["_match_count"] = len(r["_matched_kw"])
+        r["_matched_kw"] = list(r["_matched_kw"])
+    return result
+
+
+def sb_get_first_articles(law_id, limit=5):
+    """Vraća prvih N članova zakona
+    (za pitanja o cilju, oblasti primene itd.)."""
+    sb = get_sb()
+    r = sb.table("law_articles").select(
+        "id, law_id, article_number,"
+        " title, content, order_index"
+    ).eq("law_id", law_id).order(
+        "order_index").limit(limit).execute()
+    return r.data or []
+
+
+def sb_get_law_ids_by_area(area):
+    """Vraća ID-jeve zakona iz određene oblasti."""
+    sb = get_sb()
+    r = sb.table("laws").select("id").eq(
+        "is_active", True).eq(
+        "area", area).execute()
+    return [l["id"] for l in (r.data or [])]
             "connected": False,
             "error": str(e)
         }

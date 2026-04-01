@@ -4,24 +4,38 @@
  UI fix, disclaimer, čist prikaz
 ═══════════════════════════════════════════════════════════════
 """
-from supabase_db import (
-    sb_save_law_with_articles,
-    sb_get_laws_summary,
-    sb_get_articles,
-    sb_delete_law,
-    sb_update_law,
-    sb_delete_articles,
-    sb_search_articles,
-    sb_search_articles_by_number,
-    sb_search_articles_multi,
-    sb_get_first_articles,
-    sb_get_law_ids_by_area,
-    sb_get_law_basic,
-    sb_get_all_articles_with_laws,
-    sb_get_all_laws,
-    sb_find_laws_by_name,
-    sb_count_articles,
-)
+try:
+    from supabase_db import (
+        sb_save_law_with_articles,
+        sb_get_laws_summary,
+        sb_get_articles,
+        sb_delete_law,
+        sb_update_law,
+        sb_delete_articles,
+        sb_search_articles,
+        sb_search_articles_by_number,
+        sb_get_law_basic,
+        sb_get_all_articles_with_laws,
+        sb_get_all_laws,
+        sb_find_laws_by_name,
+        sb_count_articles,
+    )
+    SUPABASE_READY = True
+except ImportError:
+    SUPABASE_READY = False
+
+try:
+    from supabase_db import (
+        sb_search_articles_multi,
+        sb_get_first_articles,
+        sb_get_law_ids_by_area,
+        sb_test_connection,
+    )
+except ImportError:
+    sb_search_articles_multi = None
+    sb_get_first_articles = None
+    sb_get_law_ids_by_area = None
+    sb_test_connection = None
 import streamlit as st
 import os, re, io, json, sqlite3, hashlib, secrets, base64
 from datetime import datetime, date, timedelta

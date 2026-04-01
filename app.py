@@ -894,36 +894,27 @@ def export_laws_json():
 
 def get_law_vs_version():
     try:
-        with get_db() as conn:
-            c = conn.execute(
-                "SELECT COUNT(*) FROM law_articles"
-            ).fetchone()[0]
-            l = conn.execute(
-                "SELECT MAX(created_at)"
-                " FROM law_articles").fetchone()[0] or ""
-            return f"{c}_{l}"
+        cnt = sb_count_articles()
+        return f"{cnt}_sb"
     except Exception:
-        return "0_"
-
+        try:
+            with get_db() as conn:
+                c = conn.execute(
+                    "SELECT COUNT(*) FROM law_articles"
+                ).fetchone()[0]
+                return f"{c}_local"
+        except Exception:
+            return "0_"
 
 def build_law_vector_store():
     if not OPENAI_API_KEY:
         return None
     try:
-        with get_db() as conn:
-            rows = conn.execute(
-                "SELECT la.article_number,"
-                "la.paragraph_number,la.title,la.content,"
-                "l.name_sr,l.short_name,l.law_number,"
-                "l.area,l.hierarchy_level"
-                " FROM law_articles la"
-                " JOIN laws l ON la.law_id=l.id"
-                " WHERE l.is_active=1").fetchall()
+        rows = sb_get_all_articles_with_laws()
         if not rows:
             return None
         docs = []
-        for row in rows:
-            r = dict(row)
+        for r in rows:
             src = r.get('short_name') or r['name_sr']
             ref = f"Clan {r['article_number']}"
             hl = r.get('hierarchy_level', 3)
@@ -935,14 +926,16 @@ def build_law_vector_store():
             txt += f"\n{r['content']}"
             docs.append(Document(
                 page_content=txt, metadata={
-                    "article_number": r['article_number'],
-                    "paragraph_number": r.get(
-                        'paragraph_number', ''),
+                    "article_number":
+                        r['article_number'],
+                    "paragraph_number": "",
                     "title": r.get('title', ''),
                     "content": r['content'],
                     "name_sr": r['name_sr'],
-                    "short_name": r.get('short_name', ''),
-                    "law_number": r.get('law_number', ''),
+                    "short_name":
+                        r.get('short_name', ''),
+                    "law_number":
+                        r.get('law_number', ''),
                     "area": r.get('area', ''),
                     "hierarchy_level": hl}))
         sp = RecursiveCharacterTextSplitter(
@@ -950,7 +943,8 @@ def build_law_vector_store():
         final = []
         for d in docs:
             if len(d.page_content) > 1200:
-                final.extend(sp.split_documents([d]))
+                final.extend(
+                    sp.split_documents([d]))
             else:
                 final.append(d)
         if not final:

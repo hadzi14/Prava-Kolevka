@@ -2949,6 +2949,24 @@ def admin_dashboard():
 
 def admin_laws():
     st.markdown("### Zakoni")
+     # ═══ TEST PARENT LAW ═══
+    with st.expander("Test: sb_find_parent_law"):
+        hint = st.text_input(
+            "Unesi hint za parent zakon",
+            placeholder="npr. radu, ZOR, 03/L-212...",
+            key="parent_test_hint")
+        if hint and st.button(
+                "Traži", key="parent_test_btn"):
+            try:
+                results = sb_find_parent_law(hint)
+                if results:
+                    st.success(
+                        f"{len(results)} rezultata")
+                    st.json(results)
+                else:
+                    st.warning("Nema rezultata.")
+            except Exception as e:
+                st.error(f"Greška: {e}")
 
     # ═══ SAVE AKCIJA — novi zakon (PRE WIDGETA) ═══
     if st.session_state.get("_save_law"):

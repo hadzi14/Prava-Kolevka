@@ -291,6 +291,42 @@ AREA_KEY_LAWS = {
         "incompatible": [],
     },
 }
+SCOPE_KEYWORDS = [
+    "cilj", "delokrug", "oblast primene",
+    "predmet", "šta uređuje", "sta uredjuje",
+    "šta reguliše", "sta regulise",
+    "definicij", "pojmov", "značenje",
+    "primena zakona", "oblast zakona",
+    "svrha", "opšte odredbe", "opste odredbe",
+    "osnovna načela", "osnovna nacela",
+]
+
+IRRELEVANT_PATTERNS = {
+    "Radno pravo": [
+        "prodaja po uzorku", "predugovor",
+        "punomoćje", "punomocje", "oglas",
+        "poklonu", "poklon", "testament",
+        "nasledj", "menic", "zaloga",
+        "skladište", "skladiste", "prevoz robe",
+        "osiguranje imovine", "lizing",
+        "komisioni", "posredovanje u prometu",
+        "turistički", "turisticki",
+    ],
+    "Krivično pravo": [
+        "zakup", "najam", "kupoprodaj",
+        "alimentacij", "razvod", "bračn",
+        "zarada", "plata", "radni odnos",
+    ],
+    "Porodično pravo": [
+        "krivičn", "krivicn", "kazna zatvora",
+        "optužnic", "optuznic", "pritvor",
+    ],
+    "Obligaciono pravo": [
+        "otkaz", "radni odnos", "zaposleni",
+        "poslodavac", "sindikat", "štrajk",
+        "radno vreme", "prekovremeni",
+    ],
+}
 
 SHORTNAME_MAP = {
     "kz": ["Krivični zakonik"],

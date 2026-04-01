@@ -549,6 +549,77 @@ def init_database():
                      date.today().isoformat(),
                      (date.today() + timedelta(
                          days=36500)).isoformat()))
+                         # Sync iz Supabase u lokalni SQLite
+            try:
+                sb_laws = sb_get_all_laws(
+                    active_only=True)
+                if sb_laws:
+                    local_count = c.execute(
+                        "SELECT COUNT(*) FROM laws"
+                    ).fetchone()[0]
+                    if local_count == 0:
+                        for law in sb_laws:
+                            c.execute(
+                                "INSERT OR IGNORE"
+                                " INTO laws"
+                                " (name_sr,name_al,"
+                                "short_name,"
+                                "law_number,area,"
+                                "gazette_info,"
+                                "effective_date,"
+                                "language,full_text,"
+                                "hierarchy_level,"
+                                "is_active)"
+                                " VALUES"
+                                "(?,?,?,?,?,?,?,?,?,?,1)",
+                                (law["name_sr"],
+                                 law.get("name_al", ""),
+                                 law.get(
+                                     "short_name", ""),
+                                 law.get(
+                                     "law_number", ""),
+                                 law.get(
+                                     "area", "Ostalo"),
+                                 law.get(
+                                     "gazette_info", ""),
+                                 law.get(
+                                     "effective_date",
+                                     ""),
+                                 law.get(
+                                     "language", "sr"),
+                                 law.get(
+                                     "full_text", ""),
+                                 law.get(
+                                     "hierarchy_level",
+                                     3)))
+                            local_id = c.execute(
+                                "SELECT"
+                                " last_insert_rowid()"
+                            ).fetchone()[0]
+                            sb_arts = sb_get_articles(
+                                law["id"])
+                            for art in sb_arts:
+                                c.execute(
+                                    "INSERT INTO"
+                                    " law_articles"
+                                    " (law_id,"
+                                    "article_number,"
+                                    "paragraph_number,"
+                                    "title,content)"
+                                    " VALUES"
+                                    "(?,?,?,?,?)",
+                                    (local_id,
+                                     art.get(
+                                         "article_number",
+                                         "0"),
+                                     "",
+                                     art.get(
+                                         "title", ""),
+                                     art.get(
+                                         "content",
+                                         "")))
+            except Exception:
+                pass
     except Exception as e:
         st.error(f"DB init: {e}")
      # ═══════════════════════════════════════════════════════════════

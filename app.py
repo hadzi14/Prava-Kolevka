@@ -2778,6 +2778,45 @@ def admin_dashboard():
     with st.expander("Supabase status"):
         if st.button("Testiraj konekciju",
                      key="sb_test"):
+                          # Debug retrieval
+    with st.expander("Test pretrage"):
+        test_q = st.text_input(
+            "Test upit",
+            placeholder="neisplaćena zarada...",
+            key="debug_query")
+        if test_q and st.button(
+                "Testiraj",
+                key="debug_search"):
+            res = search_laws(test_q, 10)
+            if res:
+                st.success(
+                    f"{len(res)} rezultata")
+                for i, r in enumerate(res):
+                    src = safe_text(
+                        r.get('short_name')
+                        or r.get('name_sr', ''))
+                    art = r.get(
+                        'article_number', '?')
+                    sc = r.get('score', 0)
+                    ttl = safe_text(
+                        r.get('title', ''))
+                    area = r.get('area', '')
+                    pen = (" [PEN]"
+                           if r.get('_penalized')
+                           else "")
+                    st.text(
+                        f"#{i+1} [{sc}]{pen}"
+                        f" {src} čl.{art}"
+                        f" | {area}"
+                        f" | {ttl}")
+                    with st.expander(
+                            f"Sadržaj #{i+1}",
+                            expanded=False):
+                        st.text(
+                            r.get('content',
+                                  '')[:300])
+            else:
+                st.warning("0 rezultata")
             try:
                 from supabase_db import (
                     sb_test_connection)

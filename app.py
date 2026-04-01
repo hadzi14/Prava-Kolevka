@@ -4,7 +4,14 @@
  UI fix, disclaimer, čist prikaz
 ═══════════════════════════════════════════════════════════════
 """
-
+from supabase_db import (
+    sb_save_law_with_articles,
+    sb_get_laws_summary,
+    sb_get_articles,
+    sb_delete_law,
+    sb_update_law,
+    sb_delete_articles
+)
 import streamlit as st
 import os, re, io, json, sqlite3, hashlib, secrets, base64
 from datetime import datetime, date, timedelta

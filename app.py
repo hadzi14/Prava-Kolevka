@@ -1138,6 +1138,192 @@ def search_laws(query, max_results=15):
     rd = {}
 
     def add(r, base):
+        k = (f"{r.get('name_sr', '')}|"
+             f"{r.get('article_number', '')}|"
+             f"{r.get('paragraph_number', '')}")
+        hl = r.get('hierarchy_level', 3)
+        hb = HIERARCHY_LEVELS.get(
+            hl, HIERARCHY_LEVELS[3])['weight']
+        total = base + hb
+        r['score'] = total
+        r['hierarchy_level'] = hl
+        if k not in rd or total > rd[k]['score']:
+            rd[k] = r
+
+    # ═══ SUPABASE PRETRAGA ═══
+    try:
+        # 1. Po broju člana
+        if t_art:
+            arts = sb_search_articles_by_number(
+                t_art)
+            for art in arts:
+                law = sb_get_law_basic(
+                    art["law_id"])
+                if not law:
+                    continue
+                r = {
+                    "article_number":
+                        art["article_number"],
+                    "paragraph_number": "",
+                    "title": art.get("title", ""),
+                    "content": art["content"],
+                    "name_sr": law["name_sr"],
+                    "short_name":
+                        law.get("short_name", ""),
+                    "law_number":
+                        law.get("law_number", ""),
+                    "area": law.get("area", ""),
+                    "hierarchy_level":
+                        law.get(
+                            "hierarchy_level", 3),
+                }
+                base = 150
+                # Bonus ako je tačan zakon
+                if t_laws:
+                    for ln in t_laws:
+                        ln_l = ln.lower()
+                        if (ln_l in law["name_sr"]
+                                .lower()
+                                or ln_l in law.get(
+                                    "short_name",
+                                    "").lower()):
+                            base = 200
+                            break
+                # Bonus ako je tačna oblast
+                if (t_areas and law.get("area")
+                        in t_areas):
+                    base += 50
+                add(r, base)
+
+        # 2. Po ključnim rečima
+        for kw in kws[:6]:
+            arts = sb_search_articles(kw)
+            for art in arts:
+                law = sb_get_law_basic(
+                    art["law_id"])
+                if not law:
+                    continue
+                r = {
+                    "article_number":
+                        art["article_number"],
+                    "paragraph_number": "",
+                    "title": art.get("title", ""),
+                    "content": art["content"],
+                    "name_sr": law["name_sr"],
+                    "short_name":
+                        law.get("short_name", ""),
+                    "law_number":
+                        law.get("law_number", ""),
+                    "area": law.get("area", ""),
+                    "hierarchy_level":
+                        law.get(
+                            "hierarchy_level", 3),
+                }
+                content_l = art["content"].lower()
+                kc = sum(1 for k in kws
+                         if k in content_l)
+                base = 20 + kc * 10
+                # Bonus za tačan zakon
+                if t_laws:
+                    for ln in t_laws:
+                        ln_l = ln.lower()
+                        if (ln_l in law["name_sr"]
+                                .lower()
+                                or ln_l in law.get(
+                                    "short_name",
+                                    "").lower()):
+                            base += 50
+                            break
+                # Bonus za tačnu oblast
+                if (t_areas and law.get("area")
+                        in t_areas):
+                    base += 15
+                add(r, base)
+
+        # 3. Po nazivu zakona
+        if t_laws:
+            for ln in t_laws:
+                found = sb_find_laws_by_name(ln)
+                for law in found:
+                    arts = sb_search_articles(
+                        kws[0] if kws else "")
+                    law_arts = [
+                        a for a in arts
+                        if a["law_id"] == law["id"]]
+                    for art in law_arts[:10]:
+                        r = {
+                            "article_number":
+                                art[
+                                    "article_number"],
+                            "paragraph_number": "",
+                            "title":
+                                art.get("title", ""),
+                            "content":
+                                art["content"],
+                            "name_sr":
+                                law["name_sr"],
+                            "short_name":
+                                law.get(
+                                    "short_name",
+                                    ""),
+                            "law_number":
+                                law.get(
+                                    "law_number",
+                                    ""),
+                            "area":
+                                law.get("area", ""),
+                            "hierarchy_level":
+                                law.get(
+                                    "hierarchy_level",
+                                    3),
+                        }
+                        content_l = art[
+                            "content"].lower()
+                        kc = sum(1 for k in kws
+                                 if k in content_l)
+                        add(r, 100 + kc * 10)
+
+    except Exception as e:
+        st.error(f"Greška pretrage: {e}")
+
+    # ═══ VEKTORSKA PRETRAGA ═══
+    vs = get_law_vector_store()
+    if vs:
+        try:
+            for doc, dist in \
+                    vs.similarity_search_with_score(
+                        query, k=15):
+                m = doc.metadata
+                if dist < 1.3:
+                    sc = max(5, int(
+                        85 * (1 - dist / 1.3)))
+                    r = {k: m.get(k, '') for k in [
+                        'article_number',
+                        'paragraph_number',
+                        'title', 'content',
+                        'name_sr', 'short_name',
+                        'law_number', 'area',
+                        'hierarchy_level']}
+                    if not r['content']:
+                        r['content'] = \
+                            doc.page_content
+                    if (t_areas
+                            and r.get('area')
+                            in t_areas):
+                        sc += 15
+                    add(r, sc)
+        except Exception:
+            pass
+
+    sorted_results = sorted(
+        rd.values(),
+        key=lambda x: x.get('score', 0),
+        reverse=True)[:max_results]
+    if t_areas:
+        sorted_results = filter_irrelevant_sources(
+            sorted_results, t_areas)
+    return sorted_results
+    def add(r, base):
         k = (f"{r['name_sr']}|{r['article_number']}"
              f"|{r.get('paragraph_number', '')}")
         hl = r.get('hierarchy_level', 3)

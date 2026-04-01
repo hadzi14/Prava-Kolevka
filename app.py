@@ -19,8 +19,11 @@ try:
         sb_get_all_laws,
         sb_find_laws_by_name,
         sb_count_articles,
+        sb_find_parent_law,
     )
     SUPABASE_READY = True
+except ImportError:
+    SUPABASE_READY = False
 except ImportError:
     SUPABASE_READY = False
 

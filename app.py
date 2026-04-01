@@ -830,12 +830,14 @@ def reparse_law(law_id):
     try:
         with get_db() as conn:
             law = conn.execute(
-                "SELECT full_text FROM laws WHERE id=?",
+                "SELECT full_text FROM laws"
+                " WHERE id=?",
                 (law_id,)).fetchone()
             if not law:
-                return 0, ["Nije pronadjen."]
+                return 0, ["Nije pronađen."]
             conn.execute(
-                "DELETE FROM law_articles WHERE law_id=?",
+                "DELETE FROM law_articles"
+                " WHERE law_id=?",
                 (law_id,))
             articles, warnings = parse_articles(
                 law["full_text"])
@@ -845,7 +847,8 @@ def reparse_law(law_id):
                     " (law_id,article_number,"
                     "paragraph_number,title,content)"
                     " VALUES(?,?,?,?,?)",
-                    (law_id, art["article_number"],
+                    (law_id,
+                     art["article_number"],
                      art.get("paragraph_number", ""),
                      art.get("title", ""),
                      art["content"]))
@@ -853,8 +856,7 @@ def reparse_law(law_id):
             st.session_state.law_vs_version = ""
             return len(articles), warnings
     except Exception as e:
-        return 0, [f"Greska: {e}"]
-
+        return 0, [f"Greška: {e}"]
 
 def export_laws_json():
     try:

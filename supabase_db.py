@@ -243,3 +243,44 @@ def sb_find_laws_by_name(name):
         f"short_name.ilike.%{name}%"
     ).execute()
     return r.data or []
+
+def sb_test_connection():
+    """Testira konekciju i vraća status."""
+    try:
+        sb = get_sb()
+        laws = sb.table("laws").select(
+            "id, name_sr", count="exact"
+        ).eq("is_active", True).execute()
+        arts = sb.table("law_articles").select(
+            "id", count="exact").execute()
+        
+        result = {
+            "connected": True,
+            "laws_count": laws.count or 0,
+            "articles_count": arts.count or 0,
+            "laws": [
+                f"{l['id']}: {l['name_sr']}"
+                for l in (laws.data or [])[:5]
+            ]
+        }
+        
+        # Test: dohvati čl. 1 za law_id=3
+        test_art = sb.table("law_articles").select(
+            "article_number, title, content"
+        ).eq("law_id", 3).eq(
+            "article_number", "1").execute()
+        if test_art.data:
+            a = test_art.data[0]
+            result["test_article"] = (
+                f"Čl. {a['article_number']}: "
+                f"{a['content'][:100]}...")
+        else:
+            result["test_article"] = (
+                "Čl. 1 za law_id=3"
+                " nije pronađen")
+        return result
+    except Exception as e:
+        return {
+            "connected": False,
+            "error": str(e)
+        }

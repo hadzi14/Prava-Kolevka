@@ -163,3 +163,83 @@ def sb_get_laws_summary():
         law["num_articles"] = arts.count or 0
         result.append(law)
     return result
+
+def sb_search_articles(keyword):
+    """Pretražuje članke po ključnoj reči
+    u content ili title."""
+    sb = get_sb()
+    r = sb.table("law_articles").select(
+        "id, law_id, article_number,"
+        " title, content, order_index"
+    ).or_(
+        f"content.ilike.%{keyword}%,"
+        f"title.ilike.%{keyword}%"
+    ).limit(20).execute()
+    return r.data or []
+
+
+def sb_search_articles_by_number(art_num):
+    """Pretražuje članke po broju člana."""
+    sb = get_sb()
+    r = sb.table("law_articles").select(
+        "id, law_id, article_number,"
+        " title, content, order_index"
+    ).eq("article_number", art_num
+    ).limit(20).execute()
+    return r.data or []
+
+
+def sb_get_law_basic(law_id):
+    """Vraća osnovne podatke zakona."""
+    sb = get_sb()
+    r = sb.table("laws").select(
+        "id, name_sr, name_al, short_name,"
+        " law_number, area, hierarchy_level,"
+        " gazette_info"
+    ).eq("id", law_id).execute()
+    return r.data[0] if r.data else None
+
+
+def sb_get_all_articles_with_laws():
+    """Vraća sve članke sa podacima zakona
+    za vector store."""
+    sb = get_sb()
+    laws = sb.table("laws").select(
+        "id, name_sr, short_name, law_number,"
+        " area, hierarchy_level"
+    ).eq("is_active", True).execute().data or []
+    if not laws:
+        return []
+    law_map = {l["id"]: l for l in laws}
+    all_rows = []
+    for law_id in law_map:
+        arts = sb.table("law_articles").select(
+            "article_number, title, content"
+        ).eq("law_id", law_id).order(
+            "order_index").execute().data or []
+        for art in arts:
+            art["law_id"] = law_id
+            art["name_sr"] = law_map[law_id]["name_sr"]
+            art["short_name"] = law_map[law_id].get(
+                "short_name", "")
+            art["law_number"] = law_map[law_id].get(
+                "law_number", "")
+            art["area"] = law_map[law_id].get(
+                "area", "")
+            art["hierarchy_level"] = law_map[
+                law_id].get("hierarchy_level", 3)
+            all_rows.append(art)
+    return all_rows
+
+
+def sb_find_laws_by_name(name):
+    """Traži zakone po nazivu ili skraćenici."""
+    sb = get_sb()
+    r = sb.table("laws").select(
+        "id, name_sr, short_name, law_number,"
+        " area, hierarchy_level"
+    ).eq("is_active", True).or_(
+        f"name_sr.ilike.%{name}%,"
+        f"short_name.ilike.%{name}%"
+    ).execute()
+    return r.data or []

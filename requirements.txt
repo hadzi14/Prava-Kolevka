@@ -13,3 +13,4 @@ plotly
 bcrypt
 tiktoken
 stripe
+supabase

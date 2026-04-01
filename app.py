@@ -2978,6 +2978,14 @@ def admin_laws():
                     m.get("is_bylaw", False),
                 "relation_type":
                     m.get("relation_type", "none"),
+                "is_consolidated":
+                    m.get("is_consolidated", False),
+                "relation_type":
+                    rel_type,
+                "is_consolidated": False,
+                "relation_type": "none",
+                "is_consolidated": False,
+             
             }
             parent_id = m.get("parent_law_id")
             if parent_id:

@@ -701,34 +701,60 @@ def save_law_to_db(name_sr, name_al, short_name,
                    hierarchy_level=3):
     try:
         articles, warnings = parse_articles(full_text)
-        with get_db() as conn:
-            conn.execute(
-                "INSERT INTO laws (name_sr,name_al,"
-                "short_name,law_number,area,gazette_info,"
-                "effective_date,language,full_text,"
-                "hierarchy_level)"
-                " VALUES(?,?,?,?,?,?,?,?,?,?)",
-                (name_sr, name_al, short_name, law_number,
-                 area, gazette_info, effective_date,
-                 language, full_text, hierarchy_level))
-            law_id = conn.execute(
-                "SELECT last_insert_rowid()").fetchone()[0]
-            for art in articles:
+        
+        # Sačuvaj u Supabase
+        law_data = {
+            "name_sr": name_sr,
+            "name_al": name_al,
+            "short_name": short_name,
+            "law_number": law_number,
+            "area": area,
+            "gazette_info": gazette_info,
+            "effective_date": effective_date,
+            "is_active": True,
+            "language": language,
+            "full_text": full_text,
+            "hierarchy_level": hierarchy_level
+        }
+        law_id, num = sb_save_law_with_articles(
+            law_data, articles)
+        
+        if not law_id:
+            # Fallback na SQLite
+            with get_db() as conn:
                 conn.execute(
-                    "INSERT INTO law_articles"
-                    " (law_id,article_number,"
-                    "paragraph_number,title,content)"
-                    " VALUES(?,?,?,?,?)",
-                    (law_id, art["article_number"],
-                     art.get("paragraph_number", ""),
-                     art.get("title", ""),
-                     art["content"]))
-            st.session_state.law_vs = None
-            st.session_state.law_vs_version = ""
-            return law_id, len(articles), warnings
+                    "INSERT INTO laws (name_sr,name_al,"
+                    "short_name,law_number,area,"
+                    "gazette_info,effective_date,"
+                    "language,full_text,hierarchy_level)"
+                    " VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    (name_sr, name_al, short_name,
+                     law_number, area, gazette_info,
+                     effective_date, language,
+                     full_text, hierarchy_level))
+                law_id = conn.execute(
+                    "SELECT last_insert_rowid()"
+                ).fetchone()[0]
+                for art in articles:
+                    conn.execute(
+                        "INSERT INTO law_articles"
+                        " (law_id,article_number,"
+                        "paragraph_number,title,content)"
+                        " VALUES(?,?,?,?,?)",
+                        (law_id,
+                         art["article_number"],
+                         art.get("paragraph_number", ""),
+                         art.get("title", ""),
+                         art["content"]))
+            warnings.append(
+                "Sačuvano u lokalnu bazu"
+                " (Supabase nedostupan).")
+        
+        st.session_state.law_vs = None
+        st.session_state.law_vs_version = ""
+        return law_id, len(articles), warnings
     except Exception as e:
         return None, 0, [f"Greška: {e}"]
-
 def reparse_law(law_id):
     try:
         with get_db() as conn:

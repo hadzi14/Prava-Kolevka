@@ -2774,11 +2774,62 @@ def admin_dashboard():
             (c4, str(na), "Ukupno članova")]:
         with col:
             st.metric(lbl, val)
-             # Test Supabase konekcije
+
+    # Statistika po pravnoj snazi
+    st.markdown("### Pravni akti po vrsti")
+    try:
+        with get_db() as conn:
+            rows = conn.execute(
+                "SELECT hierarchy_level,"
+                " COUNT(*) as cnt"
+                " FROM laws"
+                " WHERE is_active=1"
+                " GROUP BY hierarchy_level"
+                " ORDER BY hierarchy_level"
+            ).fetchall()
+        if rows:
+            cols = st.columns(len(rows))
+            for i, row in enumerate(rows):
+                row = dict(row)
+                hl = row.get("hierarchy_level", 3)
+                hi = HIERARCHY_LEVELS.get(
+                    hl, HIERARCHY_LEVELS[3])
+                with cols[i]:
+                    st.metric(
+                        hi["name"],
+                        f"{row['cnt']} akata")
+    except Exception:
+        pass
+
+    # Supabase status
     with st.expander("Supabase status"):
         if st.button("Testiraj konekciju",
                      key="sb_test"):
-                          # Debug retrieval
+            try:
+                from supabase_db import (
+                    sb_test_connection)
+                status = sb_test_connection()
+                if status["connected"]:
+                    st.success(
+                        f"Povezano! "
+                        f"{status['laws_count']}"
+                        f" zakona, "
+                        f"{status['articles_count']}"
+                        f" članova")
+                    for l in status.get(
+                            "laws", []):
+                        st.text(l)
+                    st.text(
+                        status.get(
+                            "test_article", ""))
+                else:
+                    st.error(
+                        f"Greška: "
+                        f"{status.get('error')}")
+            except Exception as e:
+                st.error(f"{e}")
+
+    # Debug retrieval
     with st.expander("Test pretrage"):
         test_q = st.text_input(
             "Test upit",
@@ -2817,85 +2868,6 @@ def admin_dashboard():
                                   '')[:300])
             else:
                 st.warning("0 rezultata")
-            try:
-                from supabase_db import (
-                    sb_test_connection)
-                status = sb_test_connection()
-                if status["connected"]:
-                    st.success(
-                        f"Povezano! "
-                        f"{status['laws_count']}"
-                        f" zakona, "
-                        f"{status['articles_count']}"
-                        f" članova")
-                    for l in status.get(
-                            "laws", []):
-                        st.text(l)
-                    st.text(
-                        status.get(
-                            "test_article", ""))
-                else:
-                    st.error(
-                        f"Greška: "
-                        f"{status.get('error')}")
-            except Exception as e:
-                st.error(f"{e}")
-
-    # Statistika po pravnoj snazi
-    st.markdown("### Pravni akti po vrsti")
-    try:
-        with get_db() as conn:
-            rows = conn.execute(
-                "SELECT hierarchy_level,"
-                " COUNT(*) as cnt,"
-                " SUM((SELECT COUNT(*)"
-                "   FROM law_articles la"
-                "   WHERE la.law_id=l.id)) as arts"
-                " FROM laws l"
-                " WHERE is_active=1"
-                " GROUP BY hierarchy_level"
-                " ORDER BY hierarchy_level"
-            ).fetchall()
-        if rows:
-            cols = st.columns(len(rows))
-            for i, row in enumerate(rows):
-                row = dict(row)
-                hl = row.get("hierarchy_level", 3)
-                hi = HIERARCHY_LEVELS.get(
-                    hl, HIERARCHY_LEVELS[3])
-                with cols[i]:
-                    st.metric(
-                        hi["name"],
-                        f"{row['cnt']} akata",
-                        f"{row.get('arts', 0) or 0} čl.")
-        else:
-            st.info("Nema unetih pravnih akata.")
-    except Exception:
-        # Fallback ako subquery ne radi
-        try:
-            with get_db() as conn:
-                rows = conn.execute(
-                    "SELECT hierarchy_level,"
-                    " COUNT(*) as cnt"
-                    " FROM laws"
-                    " WHERE is_active=1"
-                    " GROUP BY hierarchy_level"
-                    " ORDER BY hierarchy_level"
-                ).fetchall()
-            if rows:
-                cols = st.columns(len(rows))
-                for i, row in enumerate(rows):
-                    row = dict(row)
-                    hl = row.get(
-                        "hierarchy_level", 3)
-                    hi = HIERARCHY_LEVELS.get(
-                        hl, HIERARCHY_LEVELS[3])
-                    with cols[i]:
-                        st.metric(
-                            hi["name"],
-                            f"{row['cnt']} akata")
-        except Exception:
-            pass
 
 def admin_laws():
     st.markdown("### Zakoni")

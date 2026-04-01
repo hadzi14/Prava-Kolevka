@@ -2969,10 +2969,10 @@ def admin_laws():
                 st.error(f"Greška: {e}")
 
     # ═══ SAVE AKCIJA — novi zakon (PRE WIDGETA) ═══
-    if st.session_state.get("_save_law"):
+        if st.session_state.get("_save_law"):
         st.session_state["_save_law"] = False
         m = st.session_state.get("preview_meta")
-               if m and m.get("name_sr") and m.get("full_text"):
+        if m and m.get("name_sr") and m.get("full_text"):
             law_data = {
                 "name_sr": m.get("name_sr", ""),
                 "name_al": m.get("name_al", ""),
@@ -2994,10 +2994,8 @@ def admin_laws():
             parent_id = m.get("parent_law_id")
             if parent_id:
                 law_data["parent_law_id"] = parent_id
-
             articles, warnings = parse_articles(
                 m.get("full_text", ""))
-
             try:
                 lid, num = sb_save_law_with_articles(
                     law_data, articles)
@@ -3007,18 +3005,12 @@ def admin_laws():
                         " članova u Supabase")
                     for w in warnings:
                         st.warning(w)
-                    # Očisti preview
-                    st.session_state \
-                        .preview_articles = None
-                    st.session_state \
-                        .preview_warnings = None
-                    st.session_state \
-                        .preview_meta = None
-                    st.session_state \
-                        .ai_metadata = None
+                    st.session_state.preview_articles = None
+                    st.session_state.preview_warnings = None
+                    st.session_state.preview_meta = None
+                    st.session_state.ai_metadata = None
                     st.session_state.law_vs = None
-                    st.session_state \
-                        .law_vs_version = ""
+                    st.session_state.law_vs_version = ""
                     st.rerun()
                 else:
                     st.error("Greška pri čuvanju.")

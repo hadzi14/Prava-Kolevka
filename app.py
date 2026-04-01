@@ -2973,7 +2973,7 @@ def admin_laws():
         st.session_state["_save_law"] = False
         m = st.session_state.get("preview_meta")
         if m and m.get("name_sr") and m.get("full_text"):
-            law_data = {
+                      law_data = {
                 "name_sr": m.get("name_sr", ""),
                 "name_al": m.get("name_al", ""),
                 "short_name": m.get("short_name", ""),
@@ -2996,14 +2996,7 @@ def admin_laws():
                     m.get("is_bylaw", False),
                 "relation_type":
                     m.get("relation_type", "none"),
-                "is_consolidated":
-                    m.get("is_consolidated", False),
-                "relation_type":
-                    rel_type,
                 "is_consolidated": False,
-                "relation_type": "none",
-                "is_consolidated": False,
-             
             }
             parent_id = m.get("parent_law_id")
             if parent_id:

@@ -1176,6 +1176,280 @@ def search_laws(query, max_results=15):
     t_areas = detect_legal_area(query)
     rd = {}
 
+    # Da li je pitanje o cilju/oblasti/definicijama?
+    is_scope_q = any(
+        sk in q for sk in SCOPE_KEYWORDS)
+
+    # Nekompatibilni termini za detekovanu oblast
+    irr_terms = []
+    if t_areas:
+        for area in t_areas[:2]:
+            irr_terms.extend(
+                IRRELEVANT_PATTERNS.get(area, []))
+
+    def score_article(art, law, base):
+        """Računa score za članak."""
+        content_l = art.get("content", "").lower()
+        title_l = (
+            art.get("title", "") or "").lower()
+        score = base
+
+        # 1. Keyword match — koliko kw se poklapa
+        kw_hits = sum(
+            1 for k in kws
+            if k in content_l or k in title_l)
+        score += kw_hits * 12
+
+        # 2. Title match bonus — naslov je precizniji
+        title_kw = sum(
+            1 for k in kws if k in title_l)
+        score += title_kw * 20
+
+        # 3. Oblast match
+        if t_areas and law.get("area") in t_areas:
+            score += 25
+
+        # 4. Tačan zakon match
+        if t_laws:
+            name_l = law.get(
+                "name_sr", "").lower()
+            short_l = law.get(
+                "short_name", "").lower()
+            for ln in t_laws:
+                ln_l = ln.lower()
+                if ln_l in name_l or ln_l in short_l:
+                    score += 40
+                    break
+
+        # 5. Scope boost — rani članci za opšta
+        #    pitanja
+        if is_scope_q:
+            art_num_str = art.get(
+                "article_number", "999")
+            try:
+                art_num = int(
+                    re.sub(r'[^0-9]', '',
+                           art_num_str) or 999)
+            except Exception:
+                art_num = 999
+            if art_num <= 3:
+                score += 40
+            elif art_num <= 10:
+                score += 15
+            # Boost za naslove o cilju itd.
+            scope_title = [
+                "cilj", "predmet", "oblast",
+                "definicij", "pojm", "načel",
+                "nacela", "svrha", "primena",
+                "opšte", "opste", "osnov"]
+            if any(st in title_l
+                   for st in scope_title):
+                score += 35
+
+        # 6. Penalizacija nerelevantnih
+        if irr_terms:
+            irr_hits = sum(
+                1 for it in irr_terms
+                if it in content_l
+                or it in title_l)
+            if irr_hits > 0:
+                # Što više nerelevantnih termina,
+                # veća penalizacija
+                score -= irr_hits * 25
+                score = max(1, score)
+
+        # 7. Penalizacija ako 0 keyword matcheva
+        #    i nije scope pitanje
+        if kw_hits == 0 and not is_scope_q:
+            score = max(1, score // 3)
+
+        return score
+
+    def add(r, score):
+        k = (f"{r.get('name_sr', '')}|"
+             f"{r.get('article_number', '')}|"
+             f"{r.get('paragraph_number', '')}")
+        hl = r.get('hierarchy_level', 3)
+        hb = HIERARCHY_LEVELS.get(
+            hl, HIERARCHY_LEVELS[3])['weight']
+        total = score + hb
+        r['score'] = total
+        r['hierarchy_level'] = hl
+        if k not in rd or total > rd[k]['score']:
+            rd[k] = r
+
+    def art_to_result(art, law):
+        return {
+            "article_number":
+                art["article_number"],
+            "paragraph_number": "",
+            "title": art.get("title", ""),
+            "content": art["content"],
+            "name_sr": law["name_sr"],
+            "short_name":
+                law.get("short_name", ""),
+            "law_number":
+                law.get("law_number", ""),
+            "area": law.get("area", ""),
+            "hierarchy_level":
+                law.get("hierarchy_level", 3),
+        }
+
+    # ═══ SUPABASE PRETRAGA ═══
+    try:
+        # Cache za law_basic da ne dohvatamo
+        # isti zakon više puta
+        _law_cache = {}
+
+        def get_law_cached(law_id):
+            if law_id not in _law_cache:
+                _law_cache[law_id] = \
+                    sb_get_law_basic(law_id)
+            return _law_cache[law_id]
+
+        # 1. Tačan broj člana
+        if t_art:
+            arts = sb_search_articles_by_number(
+                t_art)
+            for art in arts:
+                law = get_law_cached(
+                    art["law_id"])
+                if not law:
+                    continue
+                r = art_to_result(art, law)
+                sc = score_article(
+                    art, law, 150)
+                add(r, sc)
+
+        # 2. Multi-keyword pretraga
+        if kws:
+            # Ako znamo tačan zakon, pretražuj
+            # samo unutar njega
+            target_law_ids = None
+            if t_laws:
+                target_law_ids = []
+                for ln in t_laws:
+                    found = sb_find_laws_by_name(ln)
+                    for f in found:
+                        target_law_ids.append(
+                            f["id"])
+                        _law_cache[f["id"]] = f
+                if not target_law_ids:
+                    target_law_ids = None
+
+            arts = sb_search_articles_multi(
+                kws, target_law_ids)
+            for art in arts:
+                law = get_law_cached(
+                    art["law_id"])
+                if not law:
+                    continue
+                r = art_to_result(art, law)
+                # Bazni score zavisi od broja
+                # matchovanih ključnih reči
+                mc = art.get("_match_count", 1)
+                base = 20 + mc * 15
+                sc = score_article(
+                    art, law, base)
+                add(r, sc)
+
+            # Ako nemamo target zakon, pretražuj
+            # i po oblasti
+            if not target_law_ids and t_areas:
+                for area in t_areas[:2]:
+                    area_ids = \
+                        sb_get_law_ids_by_area(area)
+                    if area_ids:
+                        area_arts = \
+                            sb_search_articles_multi(
+                                kws, area_ids)
+                        for art in area_arts:
+                            law = get_law_cached(
+                                art["law_id"])
+                            if not law:
+                                continue
+                            r = art_to_result(
+                                art, law)
+                            mc = art.get(
+                                "_match_count", 1)
+                            base = 30 + mc * 15
+                            sc = score_article(
+                                art, law, base)
+                            add(r, sc)
+
+        # 3. Scope pitanja — dodaj rane članke
+        if is_scope_q and t_laws:
+            for ln in t_laws:
+                found = sb_find_laws_by_name(ln)
+                for f in found:
+                    _law_cache[f["id"]] = f
+                    early = sb_get_first_articles(
+                        f["id"], 5)
+                    for art in early:
+                        r = art_to_result(art, f)
+                        sc = score_article(
+                            art, f, 80)
+                        add(r, sc)
+
+        # Scope bez tačnog zakona — rani članci
+        # iz zakona relevantne oblasti
+        if is_scope_q and not t_laws and t_areas:
+            for area in t_areas[:2]:
+                area_ids = \
+                    sb_get_law_ids_by_area(area)
+                for lid in area_ids[:3]:
+                    law = get_law_cached(lid)
+                    if not law:
+                        continue
+                    early = sb_get_first_articles(
+                        lid, 5)
+                    for art in early:
+                        r = art_to_result(art, law)
+                        sc = score_article(
+                            art, law, 60)
+                        add(r, sc)
+
+    except Exception as e:
+        st.error(f"Greška pretrage: {e}")
+
+    # ═══ VEKTORSKA PRETRAGA ═══
+    vs = get_law_vector_store()
+    if vs:
+        try:
+            for doc, dist in \
+                    vs.similarity_search_with_score(
+                        query, k=15):
+                m = doc.metadata
+                if dist < 1.3:
+                    sc = max(5, int(
+                        85 * (1 - dist / 1.3)))
+                    r = {k: m.get(k, '') for k in [
+                        'article_number',
+                        'paragraph_number',
+                        'title', 'content',
+                        'name_sr', 'short_name',
+                        'law_number', 'area',
+                        'hierarchy_level']}
+                    if not r['content']:
+                        r['content'] = \
+                            doc.page_content
+                    if (t_areas
+                            and r.get('area')
+                            in t_areas):
+                        sc += 15
+                    add(r, sc)
+        except Exception:
+            pass
+
+    sorted_results = sorted(
+        rd.values(),
+        key=lambda x: x.get('score', 0),
+        reverse=True)[:max_results]
+    if t_areas:
+        sorted_results = filter_irrelevant_sources(
+            sorted_results, t_areas)
+    return sorted_results
+
     def add(r, base):
         k = (f"{r.get('name_sr', '')}|"
              f"{r.get('article_number', '')}|"

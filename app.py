@@ -2972,35 +2972,29 @@ def admin_laws():
     if st.session_state.get("_save_law"):
         st.session_state["_save_law"] = False
         m = st.session_state.get("preview_meta")
-        if m and m.get("name_sr") and m.get("full_text"):
-                      law_data = {
+               if m and m.get("name_sr") and m.get("full_text"):
+            law_data = {
                 "name_sr": m.get("name_sr", ""),
                 "name_al": m.get("name_al", ""),
                 "short_name": m.get("short_name", ""),
                 "law_number": m.get("law_number", ""),
                 "area": m.get("area", "Ostalo"),
-                "gazette_info":
-                    m.get("gazette_info", ""),
-                "effective_date":
-                    m.get("effective_date", ""),
+                "gazette_info": m.get("gazette_info", ""),
+                "effective_date": m.get("effective_date", ""),
                 "is_active": True,
                 "language": "sr",
                 "full_text": m.get("full_text", ""),
-                "hierarchy_level":
-                    m.get("hierarchy_level", 3),
-                "document_type":
-                    m.get("document_type", "law"),
-                "is_amendment":
-                    m.get("is_amendment", False),
-                "is_bylaw":
-                    m.get("is_bylaw", False),
-                "relation_type":
-                    m.get("relation_type", "none"),
+                "hierarchy_level": m.get("hierarchy_level", 3),
+                "document_type": m.get("document_type", "law"),
+                "is_amendment": m.get("is_amendment", False),
+                "is_bylaw": m.get("is_bylaw", False),
+                "relation_type": m.get("relation_type", "none"),
                 "is_consolidated": False,
-                        }
+            }
             parent_id = m.get("parent_law_id")
             if parent_id:
                 law_data["parent_law_id"] = parent_id
+
             articles, warnings = parse_articles(
                 m.get("full_text", ""))
 

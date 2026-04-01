@@ -3227,6 +3227,11 @@ def admin_laws():
                         parent_id = None
                         rel_type = "none"
 
+                    
+                        # Defaults - UVEK se definisu
+                        # pre upotrebe u preview_meta
+                        parent_id = None
+                        rel_type = "none"
                         # Povezivanje sa osnovnim
                         # zakonom
                         if doc_type_sel in (
@@ -3246,7 +3251,6 @@ def admin_laws():
                                     f" **"
                                     f"{parent_hint}"
                                     f"**")
-                            # Pretraga u bazi
                             search_parent = \
                                 st.text_input(
                                     "Pretraži osnovni"
@@ -3303,7 +3307,6 @@ def admin_laws():
                                     "bylaw":
                                 rel_type = \
                                     "issued_under"
-
                         # Preview članova
                         if st.button(
                                 "Preview članova",
@@ -3341,12 +3344,13 @@ def admin_laws():
                                 "is_bylaw":
                                     doc_type_sel ==
                                     "bylaw",
+                                "is_consolidated":
+                                    False,
                                 "parent_law_id":
                                     parent_id,
                                 "relation_type":
                                     rel_type,
                             }
-
                         # Prikaz preview
                         if st.session_state.get(
                                 "preview_articles"
@@ -3377,7 +3381,6 @@ def admin_laws():
                                 st.info(
                                     f"...i još"
                                     f" {len(arts)-5}")
-
                             if st.button(
                                     "Sačuvaj zakon",
                                     use_container_width=True,

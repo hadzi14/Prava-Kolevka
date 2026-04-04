@@ -1951,19 +1951,12 @@ def query_ai(question, case_doc_vs=None):
     tl = detect_target_law(question)
     t_areas = detect_legal_area(question)
     missing = []
-    if tl:
+        if tl:
         try:
-            with get_db() as conn:
-                for t in tl:
-                    c = conn.execute(
-                        "SELECT COUNT(*) c FROM laws"
-                        " WHERE is_active=1"
-                        " AND (name_sr LIKE ?"
-                        " OR short_name LIKE ?)",
-                        (f"%{t}%",
-                         f"%{t}%")).fetchone()["c"]
-                    if c == 0:
-                        missing.append(t)
+            for t in tl:
+                found = sb_find_laws_by_name(t)
+                if not found:
+                    missing.append(t)
         except Exception:
             pass
 

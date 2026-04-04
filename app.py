@@ -1629,7 +1629,7 @@ def query_ai(question, case_doc_vs=None):
     tl = detect_target_law(question)
     t_areas = detect_legal_area(question)
     missing = []
-        if tl:
+    if tl:
         try:
             for t in tl:
                 found = sb_find_laws_by_name(t)

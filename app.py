@@ -2949,8 +2949,8 @@ def admin_dashboard():
 
 def admin_laws():
     st.markdown("### Zakoni")
-     # ═══ TEST PARENT LAW ═══
-       with st.expander("Test: sb_find_parent_law"):
+
+    with st.expander("Test: sb_find_parent_law"):
         hint = st.text_input(
             "Unesi hint za parent zakon",
             placeholder="npr. radu, ZOR, 03/L-212...",
@@ -2968,9 +2968,7 @@ def admin_laws():
             except Exception as e:
                 st.error(f"Greška: {e}")
 
-    # ═══ SAVE AKCIJA — novi zakon (PRE WIDGETA) ═══
     if st.session_state.get("_save_law"):
-        st.session_state["_save_law"] = False
         st.session_state["_save_law"] = False
         m = st.session_state.get("preview_meta")
         if m and m.get("name_sr") and m.get("full_text"):
@@ -3020,7 +3018,6 @@ def admin_laws():
         else:
             st.error("Nedostaju podaci za čuvanje.")
 
-    # ═══ DODAJ NOVI ZAKON ═══
     with st.expander("Dodaj novi zakon",
                      expanded=False):
         method = st.radio(
@@ -3052,7 +3049,6 @@ def admin_laws():
                         f"Izvučeno {len(full_text)}"
                         " karaktera")
 
-                    # AI metadata extraction
                     ai_key = f"_ai_meta_{pkey}"
                     if ai_key not in st.session_state:
                         if st.button(
@@ -3063,9 +3059,8 @@ def admin_laws():
                             with st.spinner(
                                     "AI analizira"
                                     " dokument..."):
-                                meta = \
-                                    ai_extract_metadata(
-                                        full_text)
+                                meta = ai_extract_metadata(
+                                    full_text)
                                 if meta:
                                     st.session_state[
                                         ai_key] = meta
@@ -3076,60 +3071,42 @@ def admin_laws():
                                         " da obradi"
                                         " dokument.")
 
-                    # Prikaz AI rezultata za potvrdu
-                    ai_meta = st.session_state.get(
-                        ai_key)
+                    ai_meta = st.session_state.get(ai_key)
                     if ai_meta:
-                        st.markdown(
-                            "#### AI predlog"
-                            " metapodataka")
+                        st.markdown("#### AI predlog metapodataka")
 
-                        # Tip dokumenta
-                        doc_type = ai_meta.get(
-                            "document_type", "law")
+                        doc_type = ai_meta.get("document_type", "law")
                         type_labels = {
                             "law": "Osnovni zakon",
-                            "amendment_law":
-                                "Izmena i dopuna",
-                            "bylaw":
-                                "Podzakonski akt",
+                            "amendment_law": "Izmena i dopuna",
+                            "bylaw": "Podzakonski akt",
                             "other": "Ostalo"}
                         st.info(
                             f"Tip: **"
                             f"{type_labels.get(doc_type, doc_type)}"
                             f"**")
 
-                        if ai_meta.get(
-                                "is_amendment"):
+                        if ai_meta.get("is_amendment"):
                             st.warning(
-                                "Dokument je"
-                                " klasifikovan kao"
-                                " IZMENA I DOPUNA")
+                                "Dokument je klasifikovan"
+                                " kao IZMENA I DOPUNA")
                         if ai_meta.get("is_bylaw"):
                             st.warning(
-                                "Dokument je"
-                                " klasifikovan kao"
-                                " PODZAKONSKI AKT")
+                                "Dokument je klasifikovan"
+                                " kao PODZAKONSKI AKT")
 
-                        # Editabilna polja
                         c1, c2 = st.columns(2)
                         with c1:
                             name_sr = st.text_input(
                                 "Naziv zakona",
-                                value=ai_meta.get(
-                                    "title", ""),
+                                value=ai_meta.get("title", ""),
                                 key="al_name")
                             short = st.text_input(
                                 "Skraćenica",
-                                value=ai_meta.get(
-                                    "short_name",
-                                    "") or "",
+                                value=ai_meta.get("short_name", "") or "",
                                 key="al_short")
-                            hl_val = ai_meta.get(
-                                "hierarchy_level", 3)
-                            hl_keys = list(
-                                HIERARCHY_LEVELS
-                                .keys())
+                            hl_val = ai_meta.get("hierarchy_level", 3)
+                            hl_keys = list(HIERARCHY_LEVELS.keys())
                             hl_idx = (
                                 hl_keys.index(hl_val)
                                 if hl_val in hl_keys
@@ -3139,19 +3116,13 @@ def admin_laws():
                                 hl_keys,
                                 index=hl_idx,
                                 format_func=lambda x: (
-                                    HIERARCHY_LEVELS[x]
-                                    ['name']),
+                                    HIERARCHY_LEVELS[x]['name']),
                                 key="al_hl")
-                            ai_area = ai_meta.get(
-                                "legal_area",
-                                "Ostalo")
+                            ai_area = ai_meta.get("legal_area", "Ostalo")
                             area_idx = (
-                                LEGAL_AREAS.index(
-                                    ai_area)
-                                if ai_area
-                                in LEGAL_AREAS
-                                else len(
-                                    LEGAL_AREAS) - 1)
+                                LEGAL_AREAS.index(ai_area)
+                                if ai_area in LEGAL_AREAS
+                                else len(LEGAL_AREAS) - 1)
                             area = st.selectbox(
                                 "Oblast prava",
                                 LEGAL_AREAS,
@@ -3159,229 +3130,133 @@ def admin_laws():
                                 key="al_area")
                             gazette = st.text_input(
                                 "Službeni glasnik",
-                                value=ai_meta.get(
-                                    "gazette_info",
-                                    "") or "",
+                                value=ai_meta.get("gazette_info", "") or "",
                                 key="al_gazette")
                         with c2:
                             lawnum = st.text_input(
                                 "Broj zakona",
-                                value=ai_meta.get(
-                                    "document_number",
-                                    "") or "",
+                                value=ai_meta.get("document_number", "") or "",
                                 key="al_num")
                             name_al = st.text_input(
                                 "Naziv na albanskom",
-                                value=ai_meta.get(
-                                    "title_al",
-                                    "") or "",
+                                value=ai_meta.get("title_al", "") or "",
                                 key="al_nameal")
                             eff_date = st.text_input(
-                                "Datum stupanja"
-                                " na snagu",
-                                value=ai_meta.get(
-                                    "effective_date",
-                                    "") or "",
+                                "Datum stupanja na snagu",
+                                value=ai_meta.get("effective_date", "") or "",
                                 key="al_effdate")
                             dt_opts = [
-                                "law",
-                                "amendment_law",
+                                "law", "amendment_law",
                                 "bylaw", "other"]
                             dt_idx = (
-                                dt_opts.index(
-                                    doc_type)
-                                if doc_type
-                                in dt_opts else 0)
-                            doc_type_sel = \
-                                st.selectbox(
-                                    "Tip dokumenta",
-                                    dt_opts,
-                                    index=dt_idx,
-                                    format_func=(
-                                        lambda x:
-                                        type_labels
-                                        .get(x, x)),
-                                    key="al_doctype")
-                        # Default vrednosti — UVEK
+                                dt_opts.index(doc_type)
+                                if doc_type in dt_opts
+                                else 0)
+                            doc_type_sel = st.selectbox(
+                                "Tip dokumenta",
+                                dt_opts,
+                                index=dt_idx,
+                                format_func=lambda x: type_labels.get(x, x),
+                                key="al_doctype")
+
                         parent_id = None
                         rel_type = "none"
 
-                    
-                        # Defaults - UVEK se definisu
-                        # pre upotrebe u preview_meta
-                        parent_id = None
-                        rel_type = "none"
-                        # Povezivanje sa osnovnim
-                        # zakonom
-                        if doc_type_sel in (
-                                "amendment_law",
-                                "bylaw"):
+                        if doc_type_sel in ("amendment_law", "bylaw"):
                             st.markdown(
-                                "#### Povezivanje"
-                                " sa osnovnim"
-                                " zakonom")
-                            parent_hint = ai_meta\
-                                .get(
-                                    "related_parent"
-                                    "_title", "")
+                                "#### Povezivanje sa osnovnim zakonom")
+                            parent_hint = ai_meta.get(
+                                "related_parent_title", "")
                             if parent_hint:
                                 st.info(
-                                    f"AI predlog:"
-                                    f" **"
-                                    f"{parent_hint}"
-                                    f"**")
-                            search_parent = \
-                                st.text_input(
-                                    "Pretraži osnovni"
-                                    " zakon",
-                                    value=(
-                                        parent_hint
-                                        or ""),
-                                    key="parent"
-                                    "_search")
+                                    f"AI predlog: **{parent_hint}**")
+                            search_parent = st.text_input(
+                                "Pretraži osnovni zakon",
+                                value=parent_hint or "",
+                                key="parent_search")
                             if search_parent:
                                 try:
-                                    candidates = \
-                                        sb_find_parent_law(
-                                            search_parent)
+                                    candidates = sb_find_parent_law(
+                                        search_parent)
                                     if candidates:
-                                        opts = {
-                                            0: "(Bez"
-                                            " povezivanja)"}
-                                        for c in \
-                                                candidates:
-                                            opts[
-                                                c["id"]
-                                            ] = (
+                                        opts = {0: "(Bez povezivanja)"}
+                                        for c in candidates:
+                                            opts[c["id"]] = (
                                                 f"{c['name_sr']}"
                                                 f" ({c.get('short_name', '')})"
                                                 f" {c.get('law_number', '')}")
-                                        sel_parent = \
-                                            st.selectbox(
-                                                "Izaberi"
-                                                " osnovni"
-                                                " zakon",
-                                                list(
-                                                    opts
-                                                    .keys()),
-                                                format_func=(
-                                                    lambda x:
-                                                    opts[x]),
-                                                key="parent"
-                                                "_sel")
+                                        sel_parent = st.selectbox(
+                                            "Izaberi osnovni zakon",
+                                            list(opts.keys()),
+                                            format_func=lambda x: opts[x],
+                                            key="parent_sel")
                                         if sel_parent:
-                                            parent_id = \
-                                                sel_parent
+                                            parent_id = sel_parent
                                     else:
-                                        st.warning(
-                                            "Nije"
-                                            " pronađen"
-                                            " u bazi.")
+                                        st.warning("Nije pronađen u bazi.")
                                 except Exception:
                                     pass
-                            if doc_type_sel == \
-                                    "amendment_law":
+                            if doc_type_sel == "amendment_law":
                                 rel_type = "amends"
-                            elif doc_type_sel == \
-                                    "bylaw":
-                                rel_type = \
-                                    "issued_under"
-                        # Preview članova
+                            elif doc_type_sel == "bylaw":
+                                rel_type = "issued_under"
+
                         if st.button(
                                 "Preview članova",
                                 use_container_width=True,
                                 key="preview_btn"):
-                            arts, warns = \
-                                parse_articles(
-                                    full_text)
-                            st.session_state\
-                                .preview_articles = \
-                                arts
-                            st.session_state\
-                                .preview_warnings = \
-                                warns
-                            st.session_state\
-                                .preview_meta = {
+                            arts, warns = parse_articles(full_text)
+                            st.session_state.preview_articles = arts
+                            st.session_state.preview_warnings = warns
+                            st.session_state.preview_meta = {
                                 "name_sr": name_sr,
                                 "name_al": name_al,
                                 "short_name": short,
                                 "law_number": lawnum,
                                 "area": area,
-                                "hierarchy_level":
-                                    hlevel,
-                                "gazette_info":
-                                    gazette,
-                                "effective_date":
-                                    eff_date,
-                                "full_text":
-                                    full_text,
-                                "document_type":
-                                    doc_type_sel,
-                                "is_amendment":
-                                    doc_type_sel ==
-                                    "amendment_law",
-                                "is_bylaw":
-                                    doc_type_sel ==
-                                    "bylaw",
-                                "is_consolidated":
-                                    False,
-                                "parent_law_id":
-                                    parent_id,
-                                "relation_type":
-                                    rel_type,
+                                "hierarchy_level": hlevel,
+                                "gazette_info": gazette,
+                                "effective_date": eff_date,
+                                "full_text": full_text,
+                                "document_type": doc_type_sel,
+                                "is_amendment": doc_type_sel == "amendment_law",
+                                "is_bylaw": doc_type_sel == "bylaw",
+                                "is_consolidated": False,
+                                "parent_law_id": parent_id,
+                                "relation_type": rel_type,
                             }
-                        # Prikaz preview
+
                         if st.session_state.get(
-                                "preview_articles"
-                        ) is not None:
-                            arts = st.session_state\
-                                .preview_articles
-                            warns = st.session_state\
-                                .get(
-                                    "preview_warnings",
-                                    [])
-                            st.success(
-                                f"{len(arts)}"
-                                " članova")
+                                "preview_articles") is not None:
+                            arts = st.session_state.preview_articles
+                            warns = st.session_state.get(
+                                "preview_warnings", [])
+                            st.success(f"{len(arts)} članova")
                             for w in (warns or []):
                                 st.warning(w)
                             for a in arts[:5]:
-                                t = (
-                                    f" - {a['title']}"
-                                    if a.get('title')
-                                    else "")
+                                t = (f" - {a['title']}"
+                                     if a.get('title') else "")
                                 st.text(
-                                    f"Čl."
-                                    f" {a['article_number']}"
-                                    f"{t}:"
-                                    f" {safe_text(a['content'][:200])}"
-                                    "...")
+                                    f"Čl. {a['article_number']}{t}:"
+                                    f" {safe_text(a['content'][:200])}...")
                             if len(arts) > 5:
-                                st.info(
-                                    f"...i još"
-                                    f" {len(arts)-5}")
+                                st.info(f"...i još {len(arts) - 5}")
                             if st.button(
                                     "Sačuvaj zakon",
                                     use_container_width=True,
                                     type="primary",
                                     key="save_law_btn"):
-                                st.session_state[
-                                    "_save_law"
-                                ] = True
+                                st.session_state["_save_law"] = True
                                 st.rerun()
                     else:
                         st.info(
-                            "Kliknite 'AI analiza"
-                            " dokumenta' za"
-                            " automatsko"
-                            " popunjavanje.")
+                            "Kliknite 'AI analiza dokumenta'"
+                            " za automatsko popunjavanje.")
                 else:
-                    st.error(
-                        "Nije moguće pročitati"
-                        " PDF.")
+                    st.error("Nije moguće pročitati PDF.")
 
         else:
-            # ═══ RUČNI UNOS ═══
             c1, c2 = st.columns(2)
             with c1:
                 name_sr = st.text_input(
@@ -3417,16 +3292,14 @@ def admin_laws():
                 "Tekst zakona", height=400,
                 key="al_text_manual")
 
-            if st.button("Preview",
-                         disabled=not full_text,
-                         use_container_width=True,
-                         key="preview_btn_manual"):
-                arts, warns = parse_articles(
-                    full_text)
-                st.session_state\
-                    .preview_articles = arts
-                st.session_state\
-                    .preview_warnings = warns
+            if st.button(
+                    "Preview",
+                    disabled=not full_text,
+                    use_container_width=True,
+                    key="preview_btn_manual"):
+                arts, warns = parse_articles(full_text)
+                st.session_state.preview_articles = arts
+                st.session_state.preview_warnings = warns
                 st.session_state.preview_meta = {
                     "name_sr": name_sr,
                     "name_al": name_al,
@@ -3445,51 +3318,38 @@ def admin_laws():
                 }
 
             if st.session_state.get(
-                    "preview_articles"
-            ) is not None:
-                arts = st.session_state\
-                    .preview_articles
+                    "preview_articles") is not None:
+                arts = st.session_state.preview_articles
                 warns = st.session_state.get(
                     "preview_warnings", [])
-                st.success(
-                    f"{len(arts)} članova")
+                st.success(f"{len(arts)} članova")
                 for w in (warns or []):
                     st.warning(w)
                 for a in arts[:5]:
-                    t = (
-                        f" - {a['title']}"
-                        if a.get('title') else "")
+                    t = (f" - {a['title']}"
+                         if a.get('title') else "")
                     st.text(
-                        f"Čl."
-                        f" {a['article_number']}"
-                        f"{t}:"
-                        f" {safe_text(a['content'][:200])}"
-                        "...")
+                        f"Čl. {a['article_number']}{t}:"
+                        f" {safe_text(a['content'][:200])}...")
                 if len(arts) > 5:
-                    st.info(
-                        f"...i još"
-                        f" {len(arts) - 5}")
+                    st.info(f"...i još {len(arts) - 5}")
                 if st.button(
                         "Sačuvaj zakon",
                         use_container_width=True,
                         type="primary",
                         key="save_law_btn_manual"):
-                    st.session_state[
-                        "_save_law"] = True
+                    st.session_state["_save_law"] = True
                     st.rerun()
 
-    # ═══ EXPORT ═══
     with st.expander("Export"):
         if st.button("Izvezi sve (JSON)"):
             data = export_laws_json()
             st.download_button(
                 "Preuzmi",
                 data=data,
-                file_name=(
-                    f"backup_{date.today()}.json"),
+                file_name=(f"backup_{date.today()}.json"),
                 mime="application/json")
 
-    # ═══ PRETRAGA ZAKONA ═══
     st.markdown("### Zakoni u bazi")
     search_q = st.text_input(
         "Pretraži zakone",
@@ -3517,11 +3377,9 @@ def admin_laws():
                     " OR l.law_number LIKE ?"
                     " OR l.area LIKE ?)"
                     " GROUP BY l.id"
-                    " ORDER BY"
-                    " l.hierarchy_level,"
+                    " ORDER BY l.hierarchy_level,"
                     " l.name_sr",
-                    (sq, sq, sq, sq)
-                ).fetchall()
+                    (sq, sq, sq, sq)).fetchall()
             else:
                 laws = conn.execute(
                     "SELECT l.id, l.name_sr,"
@@ -3530,15 +3388,13 @@ def admin_laws():
                     " l.hierarchy_level,"
                     " l.gazette_info,"
                     " l.effective_date,"
-                    " COUNT(la.id) as"
-                    " num_articles"
+                    " COUNT(la.id) as num_articles"
                     " FROM laws l"
                     " LEFT JOIN law_articles la"
                     " ON l.id=la.law_id"
                     " WHERE l.is_active=1"
                     " GROUP BY l.id"
-                    " ORDER BY"
-                    " l.hierarchy_level,"
+                    " ORDER BY l.hierarchy_level,"
                     " l.name_sr").fetchall()
     except Exception:
         laws = []
@@ -3551,21 +3407,16 @@ def admin_laws():
     for law in laws:
         law = dict(law)
         hl = law.get('hierarchy_level', 3)
-        hi = HIERARCHY_LEVELS.get(
-            hl, HIERARCHY_LEVELS[3])
+        hi = HIERARCHY_LEVELS.get(hl, HIERARCHY_LEVELS[3])
         if hl != cur_lvl:
             cur_lvl = hl
             st.markdown(f"**{hi['name']}**")
         na = law.get('num_articles', 0)
-        sn = safe_text(
-            law.get('short_name', ''))
-        ln = safe_text(
-            law.get('law_number', ''))
+        sn = safe_text(law.get('short_name', ''))
+        ln = safe_text(law.get('law_number', ''))
         ar = safe_text(law.get('area', ''))
-        name = safe_text(
-            law.get('name_sr', ''))
-        gi = safe_text(
-            law.get('gazette_info', ''))
+        name = safe_text(law.get('name_sr', ''))
+        gi = safe_text(law.get('gazette_info', ''))
         info_parts = []
         if ln:
             info_parts.append(ln)
@@ -3579,102 +3430,72 @@ def admin_laws():
         info_str = " | ".join(info_parts)
         lid = law["id"]
 
-        with st.expander(
-                f"{name} — {info_str}"):
+        with st.expander(f"{name} — {info_str}"):
             et1, et2, et3 = st.tabs(
-                ["Info", "Izmeni podatke",
-                 "Izmeni tekst"])
+                ["Info", "Izmeni podatke", "Izmeni tekst"])
+
             with et1:
-                st.markdown(
-                    f"**Pravna snaga:**"
-                    f" {hi['name']}")
+                st.markdown(f"**Pravna snaga:** {hi['name']}")
                 if law.get('gazette_info'):
-                    st.markdown(
-                        f"**Izvor:**"
-                        f" {law['gazette_info']}")
+                    st.markdown(f"**Izvor:** {law['gazette_info']}")
                 if law.get('effective_date'):
-                    st.markdown(
-                        f"**Na snagu:**"
-                        f" {law['effective_date']}")
+                    st.markdown(f"**Na snagu:** {law['effective_date']}")
                 try:
                     with get_db() as conn:
                         arts = conn.execute(
-                            "SELECT"
-                            " article_number,"
-                            " title, content"
+                            "SELECT article_number, title, content"
                             " FROM law_articles"
                             " WHERE law_id=?"
-                            " ORDER BY CAST("
-                            "article_number"
-                            " AS INTEGER)"
+                            " ORDER BY CAST(article_number AS INTEGER)"
                             " LIMIT 5",
                             (lid,)).fetchall()
                     for a in arts:
-                        t = (
-                            f" - {a['title']}"
-                            if a['title']
-                            else "")
+                        t = (f" - {a['title']}" if a['title'] else "")
                         st.text(
-                            f"Čl."
-                            f" {a['article_number']}"
-                            f"{t}:"
+                            f"Čl. {a['article_number']}{t}:"
                             f" {safe_text(a['content'][:150])}")
                 except Exception:
                     pass
                 b1, b2 = st.columns(2)
                 with b1:
-                    if st.button(
-                            "Ponovo obradi",
-                            key=f"rep_{lid}"):
+                    if st.button("Ponovo obradi", key=f"rep_{lid}"):
                         n, w = reparse_law(lid)
                         st.success(f"{n} čl.")
                         for ww in w:
                             st.warning(ww)
                         st.rerun()
                 with b2:
-                    if st.button(
-                            "Obriši",
-                            key=f"del_{lid}"):
+                    if st.button("Obriši", key=f"del_{lid}"):
                         with get_db() as conn:
                             conn.execute(
-                                "DELETE FROM"
-                                " law_articles"
-                                " WHERE"
-                                " law_id=?",
+                                "DELETE FROM law_articles WHERE law_id=?",
                                 (lid,))
                             conn.execute(
-                                "DELETE FROM"
-                                " laws"
-                                " WHERE id=?",
+                                "DELETE FROM laws WHERE id=?",
                                 (lid,))
-                        st.session_state\
-                            .law_vs = None
-                        st.session_state\
-                            .law_vs_version = ""
+                        st.session_state.law_vs = None
+                        st.session_state.law_vs_version = ""
                         st.rerun()
+
             with et2:
                 ec1, ec2 = st.columns(2)
                 with ec1:
                     ed_name = st.text_input(
                         "Naziv",
-                        value=law.get(
-                            'name_sr', ''),
+                        value=law.get('name_sr', ''),
                         key=f"edn_{lid}")
                     ed_short = st.text_input(
                         "Skraćenica",
-                        value=law.get(
-                            'short_name', ''),
+                        value=law.get('short_name', ''),
                         key=f"eds_{lid}")
                 with ec2:
                     ed_num = st.text_input(
                         "Broj",
-                        value=law.get(
-                            'law_number', ''),
+                        value=law.get('law_number', ''),
                         key=f"ednum_{lid}")
                     ed_gaz = st.text_input(
                         "Glasnik",
-                        value=law.get(
-                            'gazette_info', ''),
+                        value=law.get('gazette_info', ''),
                         key=f"edg_{lid}")
                 if st.button(
                         "Sačuvaj izmene",
@@ -3684,33 +3505,24 @@ def admin_laws():
                         with get_db() as conn:
                             conn.execute(
                                 "UPDATE laws SET"
-                                " name_sr=?,"
-                                " short_name=?,"
-                                " law_number=?,"
-                                " gazette_info=?"
+                                " name_sr=?, short_name=?,"
+                                " law_number=?, gazette_info=?"
                                 " WHERE id=?",
-                                (ed_name,
-                                 ed_short,
-                                 ed_num,
-                                 ed_gaz, lid))
+                                (ed_name, ed_short,
+                                 ed_num, ed_gaz, lid))
                         st.success("Ažurirano.")
                         st.rerun()
                     except Exception as e:
                         st.error(f"{e}")
+
             with et3:
-                st.warning(
-                    "Ovo će ponovo obraditi"
-                    " sve članove.")
+                st.warning("Ovo će ponovo obraditi sve članove.")
                 try:
                     with get_db() as conn:
                         ft = conn.execute(
-                            "SELECT full_text"
-                            " FROM laws"
-                            " WHERE id=?",
+                            "SELECT full_text FROM laws WHERE id=?",
                             (lid,)).fetchone()
-                    cur_text = (
-                        ft["full_text"]
-                        if ft else "")
+                    cur_text = (ft["full_text"] if ft else "")
                 except Exception:
                     cur_text = ""
                 new_text = st.text_area(
@@ -3726,16 +3538,11 @@ def admin_laws():
                         try:
                             with get_db() as conn:
                                 conn.execute(
-                                    "UPDATE laws"
-                                    " SET"
-                                    " full_text=?"
+                                    "UPDATE laws SET full_text=?"
                                     " WHERE id=?",
-                                    (new_text,
-                                     lid))
-                            n, w = reparse_law(
-                                lid)
-                            st.success(
-                                f"{n} čl.")
+                                    (new_text, lid))
+                            n, w = reparse_law(lid)
+                            st.success(f"{n} čl.")
                             st.rerun()
                         except Exception as e:
                             st.error(f"{e}")

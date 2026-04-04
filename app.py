@@ -1057,36 +1057,6 @@ def detect_jurisdiction_issue(q):
             return m
     return None
 
-def check_key_law_present(areas, results):
-    """Proverava da li ključni zakon za
-    detektovanu oblast postoji u rezultatima."""
-    if not areas or not results:
-        return False, []
-    missing = []
-    for area in areas[:2]:
-        akl = AREA_KEY_LAWS.get(area)
-        if not akl:
-            continue
-        found = False
-        for r in results:
-            rname = (
-                r.get('name_sr', '') or ''
-            ).lower()
-            rshort = (
-                r.get('short_name', '') or ''
-            ).lower()
-            for kl in akl["laws"]:
-                if kl in rname or kl in rshort:
-                    found = True
-                    break
-            if found:
-                break
-        if not found:
-            missing.append(akl["label"])
-    has_key = len(missing) == 0
-    return has_key, missing
-
-
 def filter_irrelevant_sources(results, areas):
     """Penalizuje izvore iz nekompatibilne
     oblasti prava."""

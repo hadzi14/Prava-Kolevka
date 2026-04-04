@@ -203,7 +203,7 @@ def sb_get_law_basic(law_id):
 
 def sb_get_all_articles_with_laws():
     """Vraća sve članke sa podacima zakona
-    za vector store."""
+    za vector store. Jedan poziv umesto N."""
     sb = get_sb()
     laws = sb.table("laws").select(
         "id, name_sr, short_name, law_number,"
@@ -212,24 +212,35 @@ def sb_get_all_articles_with_laws():
     if not laws:
         return []
     law_map = {l["id"]: l for l in laws}
+    law_ids = list(law_map.keys())
+
+    # Jedan poziv za sve članke svih zakona
+    arts = sb.table("law_articles").select(
+        "law_id, article_number, title, content"
+    ).in_("law_id", law_ids).order(
+        "order_index").execute().data or []
+
     all_rows = []
-    for law_id in law_map:
-        arts = sb.table("law_articles").select(
-            "article_number, title, content"
-        ).eq("law_id", law_id).order(
-            "order_index").execute().data or []
-        for art in arts:
-            art["law_id"] = law_id
-            art["name_sr"] = law_map[law_id]["name_sr"]
-            art["short_name"] = law_map[law_id].get(
-                "short_name", "")
-            art["law_number"] = law_map[law_id].get(
-                "law_number", "")
-            art["area"] = law_map[law_id].get(
-                "area", "")
-            art["hierarchy_level"] = law_map[
-                law_id].get("hierarchy_level", 3)
-            all_rows.append(art)
+    for art in arts:
+        lid = art["law_id"]
+        if lid not in law_map:
+            continue
+        law = law_map[lid]
+        all_rows.append({
+            "law_id": lid,
+            "article_number":
+                art["article_number"],
+            "title": art.get("title", ""),
+            "content": art.get("content", ""),
+            "name_sr": law["name_sr"],
+            "short_name":
+                law.get("short_name", ""),
+            "law_number":
+                law.get("law_number", ""),
+            "area": law.get("area", ""),
+            "hierarchy_level":
+                law.get("hierarchy_level", 3),
+        })
     return all_rows
 
 

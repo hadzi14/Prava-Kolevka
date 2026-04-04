@@ -2650,6 +2650,11 @@ body,p,h1,h2,h3,h4,h5,h6,div,input,textarea,button,label,a{{font-family:'Inter',
 [data-testid="stExpander"]{{border:1px solid {BORDER}!important;border-radius:8px!important}}
 [data-testid="stExpander"] summary{{word-wrap:break-word!important;overflow-wrap:break-word!important}}
 @media(max-width:768px){{.top-bar{{padding:.5rem .75rem}}.top-bar h2{{font-size:1rem}}}}
+.pk-card-gold{{background:#FFFFFF;border-radius:12px;padding:1.5rem;margin:.75rem 0;border-left:3px solid #C5962C;border-top:1px solid {BORDER};border-right:1px solid {BORDER};border-bottom:1px solid {BORDER}}}
+.pk-card-gold h3{{font-family:'Playfair Display',serif!important;color:{PRIMARY};margin-top:0}}
+</style>
+.pk-card-gold{background:#FFFFFF;border-radius:12px;padding:1.5rem;margin:.75rem 0;border-left:3px solid #C5962C;border-top:1px solid #E5E7EB;border-right:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB}
+.pk-card-gold h3{font-family:'Playfair Display',serif!important;color:#13294B;margin-top:0}
 </style>
 """
 

@@ -1057,33 +1057,6 @@ def detect_jurisdiction_issue(q):
             return m
     return None
 
-def filter_irrelevant_sources(results, areas):
-    """Penalizuje izvore iz nekompatibilne
-    oblasti prava."""
-    if not areas or not results:
-        return results
-    primary_area = areas[0]
-    akl = AREA_KEY_LAWS.get(primary_area)
-    if not akl:
-        return results
-    incomp = set(akl.get("incompatible", []))
-    if not incomp:
-        return results
-    filtered = []
-    for r in results:
-        r_area = r.get('area', '')
-        if r_area in incomp:
-            # Zadrži ali snizi score drastično
-            r = dict(r)
-            r['score'] = max(1,
-                             r.get('score', 0) // 5)
-            r['_penalized'] = True
-        filtered.append(r)
-    filtered.sort(
-        key=lambda x: x.get('score', 0),
-        reverse=True)
-    return filtered
-
 def check_key_law_present(areas, results):
     """Proverava da li ključni zakon za
     detektovanu oblast postoji u rezultatima."""

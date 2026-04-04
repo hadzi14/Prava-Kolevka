@@ -3627,8 +3627,12 @@ def _ask_case(case_id, question, user):
     save_case_message(
         case_id, "user", question)
     case_vs = get_case_doc_vs(case_id)
-    answer, conf, results = query_ai(
-        question, case_vs)
+    with st.chat_message("assistant"):
+        with st.spinner(
+                "Razmišljam... pretražujem"
+                " pravne izvore..."):
+            answer, conf, results = query_ai(
+                question, case_vs)
     sources_html = (
         render_sources_html(results)
         if results else "")
@@ -3638,7 +3642,6 @@ def _ask_case(case_id, question, user):
     log_action(
         user["id"], "query",
         f"[{conf}] case={case_id}")
-
 def tab_search():
     st.markdown(
         '<div class="pk-card-gold">'

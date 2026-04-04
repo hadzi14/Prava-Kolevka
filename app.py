@@ -24,7 +24,6 @@ try:
     SUPABASE_READY = True
 except ImportError:
     SUPABASE_READY = False
-except ImportError:
     SUPABASE_READY = False
 
 try:

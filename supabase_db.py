@@ -301,31 +301,53 @@ def sb_test_connection():
 
 def sb_search_articles_multi(keywords, law_ids=None):
     """Pretražuje članke po više ključnih reči.
-    Vraća sve članke koji matchuju bar jednu reč."""
+    Jedan Supabase poziv umesto N."""
+    if not keywords:
+        return []
     sb = get_sb()
-    all_results = {}
+
+    # Spoji sve ključne reči u jedan OR uslov
+    or_parts = []
     for kw in keywords[:8]:
-        q = sb.table("law_articles").select(
-            "id, law_id, article_number,"
-            " title, content, order_index")
-        if law_ids:
-            q = q.in_("law_id", law_ids)
-        r = q.or_(
-            f"content.ilike.%{kw}%,"
-            f"title.ilike.%{kw}%"
-        ).limit(30).execute()
-        for art in (r.data or []):
-            aid = art["id"]
-            if aid not in all_results:
-                all_results[aid] = art
-                all_results[aid]["_matched_kw"] = set()
-            all_results[aid]["_matched_kw"].add(kw)
-    # Konvertuj set u listu za dalju obradu
-    result = list(all_results.values())
-    for r_item in result:
-        r_item["_match_count"] = len(r_item["_matched_kw"])
-        r_item["_matched_kw"] = list(r_item["_matched_kw"])
-    return result
+        kw_safe = kw.replace("%", "").replace(
+            "'", "")
+        if kw_safe:
+            or_parts.append(
+                f"content.ilike.%{kw_safe}%")
+            or_parts.append(
+                f"title.ilike.%{kw_safe}%")
+    if not or_parts:
+        return []
+
+    q = sb.table("law_articles").select(
+        "id, law_id, article_number,"
+        " title, content, order_index")
+    if law_ids:
+        q = q.in_("law_id", law_ids)
+    r = q.or_(",".join(or_parts)).limit(
+        50).execute()
+
+    # Računaj _match_count u Pythonu
+    results = []
+    for art in (r.data or []):
+        content_l = (
+            art.get("content", "") or ""
+        ).lower()
+        title_l = (
+            art.get("title", "") or ""
+        ).lower()
+        mc = sum(
+            1 for kw in keywords
+            if kw.lower() in content_l
+            or kw.lower() in title_l)
+        art["_match_count"] = mc
+        art["_matched_kw"] = [
+            kw for kw in keywords
+            if kw.lower() in content_l
+            or kw.lower() in title_l]
+        results.append(art)
+
+    return results
 
 
 def sb_get_first_articles(law_id, limit=5):

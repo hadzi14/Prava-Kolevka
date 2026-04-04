@@ -2955,7 +2955,7 @@ def admin_laws():
             "Unesi hint za parent zakon",
             placeholder="npr. radu, ZOR, 03/L-212...",
             key="parent_test_hint")
-        if hint and st.button(
+                if hint and st.button(
                 "Traži", key="parent_test_btn"):
             try:
                 results = sb_find_parent_law(hint)
@@ -2969,7 +2969,7 @@ def admin_laws():
                 st.error(f"Greška: {e}")
 
     # ═══ SAVE AKCIJA — novi zakon (PRE WIDGETA) ═══
-        if st.session_state.get("_save_law"):
+    if st.session_state.get("_save_law"):
         st.session_state["_save_law"] = False
         m = st.session_state.get("preview_meta")
         if m and m.get("name_sr") and m.get("full_text"):

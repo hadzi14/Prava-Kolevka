@@ -3075,17 +3075,25 @@ def create_submission_docx(
 def save_submission(case_id, user_id,
                     submission_type, court_name,
                     case_number, content):
-    """Čuva podnesak u bazu."""
+    if SUPABASE_READY:
+        sid = sb_save_submission(
+            case_id, user_id,
+            submission_type, court_name,
+            case_number, content)
+        if sid:
+            return sid
+    # Fallback SQLite
     try:
         with get_db() as conn:
             conn.execute(
                 "INSERT INTO case_submissions"
-                " (case_id, user_id, submission_type,"
-                " court_name, case_number, content,"
-                " status)"
+                " (case_id, user_id,"
+                " submission_type, court_name,"
+                " case_number, content, status)"
                 " VALUES (?,?,?,?,?,?,'draft')",
-                (case_id, user_id, submission_type,
-                 court_name, case_number, content))
+                (case_id, user_id,
+                 submission_type, court_name,
+                 case_number, content))
             return conn.execute(
                 "SELECT last_insert_rowid()"
             ).fetchone()[0]
@@ -3094,7 +3102,11 @@ def save_submission(case_id, user_id,
 
 
 def get_case_submissions(case_id):
-    """Dohvata sve podneske predmeta."""
+    if SUPABASE_READY:
+        subs = sb_get_case_submissions(case_id)
+        if subs is not None:
+            return subs
+    # Fallback SQLite
     try:
         with get_db() as conn:
             rows = conn.execute(
@@ -3108,7 +3120,9 @@ def get_case_submissions(case_id):
 
 
 def delete_submission(sub_id, user_id):
-    """Briše podnesak."""
+    if SUPABASE_READY:
+        return sb_delete_submission(
+            sub_id, user_id)
     try:
         with get_db() as conn:
             conn.execute(
@@ -3118,7 +3132,6 @@ def delete_submission(sub_id, user_id):
         return True
     except Exception:
         return False
-
 
 def check_subscription(user):
     if user["role"] == "admin":

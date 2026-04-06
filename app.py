@@ -865,6 +865,13 @@ def init_database():
                 content TEXT NOT NULL,
                 created_at TEXT DEFAULT (datetime('now'))
             )""")
+            c.execute("""CREATE TABLE IF NOT EXISTS cases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                created_at TEXT DEFAULT (datetime('now'))
+            )""")
             c.execute("""CREATE TABLE IF NOT EXISTS case_submissions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 case_id INTEGER NOT NULL,
@@ -894,43 +901,75 @@ def init_database():
                 language TEXT DEFAULT 'sr',
                 created_at TEXT DEFAULT (datetime('now'))
             )""")
+
+            # ── ALTER TABLE checks ──────────────────
             try:
                 c.execute(
-                    "SELECT hierarchy_level FROM laws LIMIT 1")
+                    "SELECT hierarchy_level"
+                    " FROM laws LIMIT 1")
             except Exception:
                 c.execute(
                     "ALTER TABLE laws ADD COLUMN"
-                    " hierarchy_level INTEGER DEFAULT 3")
+                    " hierarchy_level"
+                    " INTEGER DEFAULT 3")
             try:
-                c.execute("SELECT signature_city FROM users LIMIT 1")
-            except Exception:
-                c.execute("ALTER TABLE users ADD COLUMN signature_city TEXT DEFAULT ''")
-            try:
-                c.execute("SELECT signature_name FROM users LIMIT 1")
-            except Exception:
-                c.execute("ALTER TABLE users ADD COLUMN signature_name TEXT DEFAULT ''")
-            try:
-                c.execute("SELECT office_name FROM users LIMIT 1")
-            except Exception:
-                c.execute("ALTER TABLE users ADD COLUMN office_name TEXT DEFAULT ''")
-                admin = c.execute(
-                "SELECT id FROM users WHERE email=?",
-                (ADMIN_EMAIL,)).fetchone()
-            if not admin:
-                ph, salt = create_password_hash(
-                    ADMIN_DEFAULT_PASSWORD)
                 c.execute(
-                    "INSERT INTO users"
-                    " (email,password_hash,salt,full_name,"
-                    "role,plan,is_active,"
-                    "subscription_start,subscription_end)"
-                    " VALUES(?,?,?,?,'admin','enterprise',"
-                    "1,?,?)",
-                    (ADMIN_EMAIL, ph, salt, "Administrator",
-                     date.today().isoformat(),
-                     (date.today() + timedelta(
-                         days=36500)).isoformat()))
-                         # Sync iz Supabase u lokalni SQLite
+                    "SELECT signature_city"
+                    " FROM users LIMIT 1")
+            except Exception:
+                c.execute(
+                    "ALTER TABLE users ADD COLUMN"
+                    " signature_city TEXT DEFAULT ''")
+            try:
+                c.execute(
+                    "SELECT signature_name"
+                    " FROM users LIMIT 1")
+            except Exception:
+                c.execute(
+                    "ALTER TABLE users ADD COLUMN"
+                    " signature_name TEXT DEFAULT ''")
+            try:
+                c.execute(
+                    "SELECT office_name"
+                    " FROM users LIMIT 1")
+            except Exception:
+                c.execute(
+                    "ALTER TABLE users ADD COLUMN"
+                    " office_name TEXT DEFAULT ''")
+
+            # ── ADMIN korisnik ──────────────────────
+            try:
+                admin = c.execute(
+                    "SELECT id FROM users"
+                    " WHERE email=?",
+                    (ADMIN_EMAIL,)).fetchone()
+            except Exception:
+                admin = None
+
+            if not admin:
+                try:
+                    ph, salt = create_password_hash(
+                        ADMIN_DEFAULT_PASSWORD)
+                    c.execute(
+                        "INSERT INTO users"
+                        " (email,password_hash,salt,"
+                        "full_name,role,plan,"
+                        "is_active,"
+                        "subscription_start,"
+                        "subscription_end)"
+                        " VALUES(?,?,?,?,"
+                        "'admin','enterprise',"
+                        "1,?,?)",
+                        (ADMIN_EMAIL, ph, salt,
+                         "Administrator",
+                         date.today().isoformat(),
+                         (date.today() + timedelta(
+                             days=36500)
+                          ).isoformat()))
+                except Exception:
+                    pass
+
+            # ── Supabase sync ───────────────────────
             try:
                 sb_laws = sb_get_all_laws(
                     active_only=True)
@@ -954,7 +993,8 @@ def init_database():
                                 " VALUES"
                                 "(?,?,?,?,?,?,?,?,?,?,1)",
                                 (law["name_sr"],
-                                 law.get("name_al", ""),
+                                 law.get(
+                                     "name_al", ""),
                                  law.get(
                                      "short_name", ""),
                                  law.get(
@@ -1001,6 +1041,7 @@ def init_database():
                                          "")))
             except Exception:
                 pass
+
     except Exception as e:
         st.error(f"DB init: {e}")
      # ═══════════════════════════════════════════════════════════════

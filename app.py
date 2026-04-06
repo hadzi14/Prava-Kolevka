@@ -1427,20 +1427,22 @@ def search_laws(query, max_results=15):
             irr_terms.extend(
                 IRRELEVANT_PATTERNS.get(area, []))
 
-    def score_article(art, law, base):
-        """Računa score za članak."""
-        content_l = art.get("content", "").lower()
+        def score_article(art, law, base):
+        """Računa score za članak.
+        Koristi DOMAIN_BOOST za sve oblasti."""
+        content_l = art.get(
+            "content", "").lower()
         title_l = (
             art.get("title", "") or "").lower()
         score = base
 
-        # 1. Keyword match — koliko kw se poklapa
+        # 1. Keyword match
         kw_hits = sum(
             1 for k in kws
             if k in content_l or k in title_l)
         score += kw_hits * 12
 
-        # 2. Title match bonus — naslov je precizniji
+        # 2. Title match bonus
         title_kw = sum(
             1 for k in kws if k in title_l)
         score += title_kw * 20
@@ -1457,51 +1459,73 @@ def search_laws(query, max_results=15):
                 "short_name", "").lower()
             for ln in t_laws:
                 ln_l = ln.lower()
-                if ln_l in name_l or ln_l in short_l:
+                if (ln_l in name_l
+                        or ln_l in short_l):
                     score += 40
                     break
 
-        # 5. Scope boost — rani članci za opšta
-        #    pitanja
+        # 5. Scope boost
         if is_scope_q:
             art_num_str = art.get(
                 "article_number", "999")
             try:
                 art_num = int(
-                    re.sub(r'[^0-9]', '',
-                           art_num_str) or 999)
+                    re.sub(
+                        r'[^0-9]', '',
+                        art_num_str) or 999)
             except Exception:
                 art_num = 999
             if art_num <= 3:
                 score += 40
             elif art_num <= 10:
                 score += 15
-            # Boost za naslove o cilju itd.
             scope_title = [
                 "cilj", "predmet", "oblast",
                 "definicij", "pojm", "načel",
                 "nacela", "svrha", "primena",
                 "opšte", "opste", "osnov"]
-            if any(st in title_l
-                   for st in scope_title):
+            if any(
+                    st_kw in title_l
+                    for st_kw in scope_title):
                 score += 35
 
-        # 6. Penalizacija nerelevantnih
+        # 6. Penalizacija nerelevantnih termina
         if irr_terms:
             irr_hits = sum(
                 1 for it in irr_terms
                 if it in content_l
                 or it in title_l)
             if irr_hits > 0:
-                # Što više nerelevantnih termina,
-                # veća penalizacija
                 score -= irr_hits * 25
                 score = max(1, score)
 
         # 7. Penalizacija ako 0 keyword matcheva
-        #    i nije scope pitanje
         if kw_hits == 0 and not is_scope_q:
             score = max(1, score // 3)
+
+        # 8. DOMENSKI BOOST za sve oblasti
+        primary_area = (
+            t_areas[0] if t_areas else None)
+        if primary_area:
+            db = DOMAIN_BOOST.get(primary_area)
+            if db:
+                central_hits = sum(
+                    1 for term in db["central"]
+                    if term in content_l
+                    or term in title_l)
+                peripheral_hits = sum(
+                    1 for term in db["peripheral"]
+                    if term in content_l
+                    or term in title_l)
+                score += (
+                    central_hits
+                    * db["central_score"])
+                if (peripheral_hits > 0
+                        and central_hits == 0):
+                    score = max(
+                        1,
+                        score - peripheral_hits
+                        * db["peripheral_penalty"])
 
         return score
 

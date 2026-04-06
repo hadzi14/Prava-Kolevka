@@ -2692,9 +2692,14 @@ def generate_submission(
         case_number, sig_city, sig_name,
         office_name):
     """Generiše podnesak pomoću AI."""
-    context = f"OPIS PREDMETA:\n{case_description}\n\n"
-    if case_docs_text:
-        context += f"DOKUMENTI PREDMETA:\n{case_docs_text}\n\n"
+        # Anonimizuj pre slanja na OpenAI
+    case_description_anon = anonymize_for_ai(
+        case_description)
+    docs_anon = anonymize_for_ai(case_docs_text)
+
+    context = f"OPIS PREDMETA:\n{case_description_anon}\n\n"
+    if docs_anon:
+        context += f"DOKUMENTI PREDMETA:\n{docs_anon}\n\n"
     if law_context:
         context += f"RELEVANTNI PRAVNI IZVORI:\n{law_context}\n\n"
     context += f"SUD: {court_name}\n"

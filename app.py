@@ -2207,22 +2207,21 @@ def query_ai(question, case_doc_vs=None):
         except Exception:
             pass
 
-     # Anonimizuj pre slanja na OpenAI
-    question_anon = anonymize_for_ai(question)
-
-    results = search_laws(question)
-    conf_level, conf_note = determine_confidence(
-        results, question, t_areas)
-
-    # Proveri ključni zakon
-    has_key, missing_key = check_key_law_present(
-        t_areas, results)
+             # Anonimizuj pre slanja na OpenAI
+        question_anon = anonymize_for_ai(question)
 
         results = search_laws(question)
-    ctx = format_results(results)
+        conf_level, conf_note = determine_confidence(
+            results, question, t_areas)
 
-    doc_ctx = "(Nema dokumenata.)"
-    if case_doc_vs:
+        # Proveri ključni zakon
+        has_key, missing_key = check_key_law_present(
+            t_areas, results)
+
+        ctx = format_results(results)
+
+        doc_ctx = "(Nema dokumenata.)"
+        if case_doc_vs:
         try:
             ds = case_doc_vs.as_retriever(
                 search_kwargs={"k": 4}).invoke(

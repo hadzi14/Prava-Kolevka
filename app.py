@@ -3204,16 +3204,19 @@ def run_auto_suspension():
 
 def log_action(uid, action, details=""):
     try:
-        safe = re.sub(
-            r'[a-zA-Z0-9._%+-]+@[^\s]+',
-            '[EMAIL]',
-            (details or "")[:80])
-        with get_db() as conn:
-            conn.execute(
-                "INSERT INTO usage_logs"
-                "(user_id,action,details)"
-                "VALUES(?,?,?)",
-                (uid, action, safe))
+        if SUPABASE_READY:
+            sb_log_action(uid, action, details)
+        else:
+            safe = re.sub(
+                r'[a-zA-Z0-9._%+-]+@[^\s]+',
+                '[EMAIL]',
+                (details or "")[:80])
+            with get_db() as conn:
+                conn.execute(
+                    "INSERT INTO usage_logs"
+                    "(user_id,action,details)"
+                    "VALUES(?,?,?)",
+                    (uid, action, safe))
     except Exception:
         pass
 

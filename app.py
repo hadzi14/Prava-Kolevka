@@ -2335,6 +2335,575 @@ def get_case_doc_vs(case_id):
     st.session_state.case_doc_vs = vs
     st.session_state.case_doc_vs_id = case_id
     return vs
+ # ═══════════════════════════════════════════════════════════════
+#  PODNESCI
+# ═══════════════════════════════════════════════════════════════
+
+SUBMISSION_TYPES = {
+    "zalba": "Žalba",
+    "zalba_apelacioni": "Žalba Apelacionom sudu",
+    "tuzba": "Tužba",
+    "odgovor_na_tuzbu": "Odgovor na tužbu",
+    "prigovor": "Prigovor",
+    "zahtev": "Zahtev",
+    "predlog_izvrsenje": "Predlog za izvršenje",
+    "molba_odlaganje": "Molba za odlaganje",
+    "punomocje": "Punomoćje",
+    "predlog_obezbedjenje": "Predlog za obezbeđenje",
+    "tuzba_upravni": "Tužba upravnom sudu",
+    "ustavna_zalba": "Ustavna žalba",
+    "krivicna_prijava": "Krivična prijava",
+    "predlog_pritvor": "Predlog za pritvor",
+    "branilacki_podnesak": "Branilački podnesak",
+    "ostalo": "Ostalo",
+}
+
+SUBMISSION_PROMPTS = {
+    "zalba": (
+        "Napiši ŽALBU na presudu osnovnog suda za Kosovo. "
+        "Žalba ide Apelacionom sudu u Prištini. "
+        "Koristi formalni pravni jezik na srpskom. "
+        "Format: uvod sa oznakom presude, "
+        "razlozi žalbe (bitna povreda postupka, "
+        "pogrešno utvrđeno činjenično stanje, "
+        "pogrešna primena prava), predlog odluke. "
+        "Osnovi se ISKLJUČIVO na sledećim podacima:\n{context}"),
+    "zalba_apelacioni": (
+        "Napiši ŽALBU Apelacionom sudu u Prištini. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: uvod, razlozi žalbe, predlog. "
+        "Osnovi se na:\n{context}"),
+    "tuzba": (
+        "Napiši TUŽBU za sud na Kosovu. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: tužilac, tuženi, vrednost spora, "
+        "činjenični opis, pravni osnov, dokazni predlozi, "
+        "tužbeni zahtev. "
+        "Osnovi se na:\n{context}"),
+    "odgovor_na_tuzbu": (
+        "Napiši ODGOVOR NA TUŽBU za sud na Kosovu. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: uvod sa oznakom predmeta, "
+        "osporavanje navoda tužbe, pravni osnov odbrane, "
+        "predlog odbijanja tužbenog zahteva. "
+        "Osnovi se na:\n{context}"),
+    "prigovor": (
+        "Napiši PRIGOVOR za sud na Kosovu. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: oznaka predmeta, osnov prigovora, "
+        "obrazloženje, predlog. "
+        "Osnovi se na:\n{context}"),
+    "zahtev": (
+        "Napiši ZAHTEV sudu ili organu na Kosovu. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: podnosilac, primalac, predmet zahteva, "
+        "obrazloženje, pravni osnov, predlog. "
+        "Osnovi se na:\n{context}"),
+    "predlog_izvrsenje": (
+        "Napiši PREDLOG ZA IZVRŠENJE za Kosovo. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: izvršni poverilac, izvršni dužnik, "
+        "izvršna isprava, sredstvo i predmet izvršenja, "
+        "predlog. Osnovi se na:\n{context}"),
+    "molba_odlaganje": (
+        "Napiši MOLBU ZA ODLAGANJE za sud na Kosovu. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: oznaka predmeta, razlozi odlaganja, "
+        "predlog novog roka. "
+        "Osnovi se na:\n{context}"),
+    "punomocje": (
+        "Napiši PUNOMOĆJE za zastupanje pred sudom "
+        "na Kosovu. Formalni pravni jezik na srpskom. "
+        "Format: vlastodavac (ime, adresa, JMBG ako postoji), "
+        "punomoćnik (advokat, adresa kancelarije), "
+        "obim punomoćja, datum. "
+        "Osnovi se na:\n{context}"),
+    "predlog_obezbedjenje": (
+        "Napiši PREDLOG ZA OBEZBEĐENJE za Kosovo. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: predlagač, protivnik, "
+        "mera obezbeđenja koja se traži, "
+        "razlozi hitnosti, pravni osnov, predlog. "
+        "Osnovi se na:\n{context}"),
+    "tuzba_upravni": (
+        "Napiši TUŽBU UPRAVNOM SUDU Kosova. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: tužilac, tuženi organ, "
+        "pobijani akt sa oznakom, razlozi tužbe, "
+        "tužbeni zahtev za poništaj akta. "
+        "Osnovi se na:\n{context}"),
+    "ustavna_zalba": (
+        "Napiši USTAVNU ŽALBU Ustavnom sudu Kosova. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: podnosilac, povređeno ustavno pravo, "
+        "opis povrede, iscrpljenost pravnih lekova, "
+        "predlog. Osnovi se na:\n{context}"),
+    "krivicna_prijava": (
+        "Napiši KRIVIČNU PRIJAVU za Kosovo. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: podnosilac, prijavljeni, "
+        "opis krivičnog dela sa zakonskom kvalifikacijom, "
+        "dokazi, predlog za istragu. "
+        "Osnovi se na:\n{context}"),
+    "predlog_pritvor": (
+        "Napiši PREDLOG ZA PRITVOR za Kosovo. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: podnosilac (tužilac), "
+        "osumnjičeni, krivično delo, "
+        "osnovi za pritvor, trajanje, predlog. "
+        "Osnovi se na:\n{context}"),
+    "branilacki_podnesak": (
+        "Napiši BRANILAČKI PODNESAK za Kosovo. "
+        "Formalni pravni jezik na srpskom. "
+        "Format: branilac, okrivljeni, "
+        "sud i oznaka predmeta, "
+        "argumenti odbrane, dokazni predlozi, predlog. "
+        "Osnovi se na:\n{context}"),
+    "ostalo": (
+        "Napiši pravni podnesak za Kosovo. "
+        "Formalni pravni jezik na srpskom. "
+        "Prilagodi format prema opisu slučaja. "
+        "Osnovi se na:\n{context}"),
+}
+
+COURT_DETECTION_PROMPT = (
+    "Na osnovu sledećeg opisa predmeta, "
+    "odredi koji sud je nadležan na Kosovu.\n\n"
+    "Osnovi sud postoji u: Prištini, Mitrovici, "
+    "Peći, Prizrenu, Đakovici, Gnjilanu, Gračanici.\n"
+    "Apelacioni sud postoji SAMO u Prištini.\n"
+    "Upravni sud je u Prištini.\n"
+    "Ustavni sud je u Prištini.\n\n"
+    "Vrati ISKLJUČIVO validan JSON bez komentara:\n"
+    '{{"primary_court": "Osnovni sud u Prištini",'
+    '"is_appellate": false,'
+    '"court_type": "basic"}}\n\n'
+    "court_type može biti: basic, appellate, "
+    "administrative, constitutional, other\n\n"
+    "Opis predmeta:\n{description}")
+
+
+def get_user_signature(user_id):
+    """Dohvata sačuvane podatke o potpisu korisnika."""
+    try:
+        with get_db() as conn:
+            u = conn.execute(
+                "SELECT signature_city, signature_name,"
+                " office_name FROM users WHERE id=?",
+                (user_id,)).fetchone()
+            if u:
+                return {
+                    "city": u["signature_city"] or "",
+                    "name": u["signature_name"] or "",
+                    "office": u["office_name"] or "",
+                }
+    except Exception:
+        pass
+    return {"city": "", "name": "", "office": ""}
+
+
+def save_user_signature(user_id, city, name, office):
+    """Čuva podatke o potpisu korisnika."""
+    try:
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE users SET signature_city=?,"
+                " signature_name=?, office_name=?"
+                " WHERE id=?",
+                (city, name, office, user_id))
+        return True
+    except Exception:
+        return False
+
+
+def detect_court(case_description, submission_type):
+    """AI detektuje nadležni sud."""
+    if submission_type == "tuzba_upravni":
+        return "Osnovni sud — Odeljenje za upravne sporove u Prištini", False
+    if submission_type == "ustavna_zalba":
+        return "Ustavni sud Kosova", False
+    if submission_type in ("zalba_apelacioni",):
+        return "Apelacioni sud u Prištini", True
+    try:
+        llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            api_key=OPENAI_API_KEY,
+            temperature=0.0,
+            max_tokens=200)
+        resp = llm.invoke([HumanMessage(
+            content=COURT_DETECTION_PROMPT.format(
+                description=case_description)
+        )]).content.strip()
+        if resp.startswith("```"):
+            resp = re.sub(r'^```(?:json)?\s*', '', resp)
+            resp = re.sub(r'\s*```$', '', resp)
+        data = json.loads(resp)
+        court = data.get(
+            "primary_court",
+            "Osnovni sud u Prištini")
+        is_app = data.get("is_appellate", False)
+        return court, is_app
+    except Exception:
+        return "Osnovni sud u Prištini", False
+
+
+def generate_submission(
+        submission_type, case_description,
+        case_docs_text, law_context,
+        court_name, is_appellate,
+        case_number, sig_city, sig_name,
+        office_name):
+    """Generiše podnesak pomoću AI."""
+    context = f"OPIS PREDMETA:\n{case_description}\n\n"
+    if case_docs_text:
+        context += f"DOKUMENTI PREDMETA:\n{case_docs_text}\n\n"
+    if law_context:
+        context += f"RELEVANTNI PRAVNI IZVORI:\n{law_context}\n\n"
+    context += f"SUD: {court_name}\n"
+    context += f"BROJ PREDMETA: {case_number}\n"
+
+    prompt_template = SUBMISSION_PROMPTS.get(
+        submission_type,
+        SUBMISSION_PROMPTS["ostalo"])
+    full_prompt = prompt_template.format(
+        context=context)
+
+    try:
+        llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            api_key=OPENAI_API_KEY,
+            temperature=0.1,
+            max_tokens=6000)
+        content = llm.invoke(
+            [HumanMessage(
+                content=full_prompt)]).content
+
+        # Traži relevantne pravne izvore
+        results = search_laws(case_description, 8)
+        return content, results
+    except Exception as e:
+        return f"Greška pri generisanju: {e}", []
+
+
+def create_submission_pdf(
+        content, court_name, is_appellate,
+        case_number, sig_city, sig_name,
+        office_name, submission_type_name):
+    """Kreira PDF podneska."""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import (
+            getSampleStyleSheet, ParagraphStyle)
+        from reportlab.platypus import (
+            SimpleDocTemplate, Paragraph,
+            Spacer, Table, TableStyle)
+        from reportlab.lib.units import cm
+        from reportlab.lib import colors
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from reportlab.lib.enums import (
+            TA_LEFT, TA_CENTER, TA_RIGHT)
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buf,
+            pagesize=A4,
+            rightMargin=2.5*cm,
+            leftMargin=2.5*cm,
+            topMargin=2.5*cm,
+            bottomMargin=3*cm)
+
+        styles = getSampleStyleSheet()
+
+        style_normal = ParagraphStyle(
+            'Normal_SR',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=11,
+            leading=16,
+            spaceAfter=6)
+
+        style_court = ParagraphStyle(
+            'Court',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=12,
+            leading=16,
+            alignment=TA_CENTER,
+            spaceAfter=4)
+
+        style_header_left = ParagraphStyle(
+            'HeaderLeft',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=10,
+            leading=14,
+            alignment=TA_LEFT)
+
+        style_header_right = ParagraphStyle(
+            'HeaderRight',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=10,
+            leading=14,
+            alignment=TA_RIGHT)
+
+        style_body = ParagraphStyle(
+            'Body',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=11,
+            leading=18,
+            spaceAfter=8,
+            firstLineIndent=0)
+
+        style_sig_left = ParagraphStyle(
+            'SigLeft',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=11,
+            leading=18,
+            alignment=TA_LEFT)
+
+        style_sig_right = ParagraphStyle(
+            'SigRight',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=11,
+            leading=18,
+            alignment=TA_RIGHT)
+
+        story = []
+
+        # ZAGLAVLJE — levo kancelarija, desno br. predmeta
+        header_data = [[
+            Paragraph(
+                f"Advokatska kancelarija<br/>"
+                f"<b>{safe_html(office_name)}</b>",
+                style_header_left),
+            Paragraph(
+                f"Br. predmeta: <b>{safe_html(case_number)}</b>",
+                style_header_right)
+        ]]
+        header_table = Table(
+            header_data,
+            colWidths=[9*cm, 7*cm])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ]))
+        story.append(header_table)
+        story.append(Spacer(1, 0.8*cm))
+
+        # SUD — centar
+        story.append(Paragraph(
+            court_name, style_court))
+        if is_appellate:
+            story.append(Paragraph(
+                "Apelacioni sud u Prištini",
+                style_court))
+        story.append(Spacer(1, 0.8*cm))
+
+        # SADRŽAJ PODNESKA
+        for line in content.split('\n'):
+            line = line.strip()
+            if not line:
+                story.append(Spacer(1, 0.3*cm))
+                continue
+            # Naslovi
+            if line.startswith('## '):
+                p = ParagraphStyle(
+                    'Heading',
+                    parent=styles['Normal'],
+                    fontName='Helvetica-Bold',
+                    fontSize=12,
+                    leading=18,
+                    spaceBefore=12,
+                    spaceAfter=6)
+                story.append(
+                    Paragraph(line[3:], p))
+            elif line.startswith('# '):
+                p = ParagraphStyle(
+                    'Heading1',
+                    parent=styles['Normal'],
+                    fontName='Helvetica-Bold',
+                    fontSize=13,
+                    leading=20,
+                    spaceBefore=14,
+                    spaceAfter=8,
+                    alignment=TA_CENTER)
+                story.append(
+                    Paragraph(line[2:], p))
+            elif line.startswith('- ') or line.startswith('• '):
+                story.append(
+                    Paragraph(
+                        f"• {line[2:]}",
+                        style_body))
+            else:
+                story.append(
+                    Paragraph(
+                        line, style_body))
+
+        story.append(Spacer(1, 1.5*cm))
+
+        # POTPIS — levo mesto i datum, desno punomoćnik
+        today = datetime.now().strftime("%d. %m. %Y")
+        sig_data = [[
+            Paragraph(
+                f"U {safe_html(sig_city)},<br/>"
+                f"dana {today}. godine",
+                style_sig_left),
+            Paragraph(
+                f"Punomoćnik:<br/>"
+                f"<b>{safe_html(sig_name)}</b>",
+                style_sig_right)
+        ]]
+        sig_table = Table(
+            sig_data,
+            colWidths=[9*cm, 7*cm])
+        sig_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ]))
+        story.append(sig_table)
+
+        doc.build(story)
+        buf.seek(0)
+        return buf
+    except ImportError:
+        # Fallback na DOCX ako nema reportlab
+        return create_submission_docx(
+            content, court_name, is_appellate,
+            case_number, sig_city, sig_name,
+            office_name)
+
+
+def create_submission_docx(
+        content, court_name, is_appellate,
+        case_number, sig_city, sig_name,
+        office_name):
+    """Fallback DOCX ako nema reportlab."""
+    from docx.shared import Inches
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+
+    doc = DocxDocument()
+
+    # Margine
+    for section in doc.sections:
+        section.top_margin = Pt(72)
+        section.bottom_margin = Pt(85)
+        section.left_margin = Pt(85)
+        section.right_margin = Pt(85)
+
+    # Zaglavlje tabela
+    table = doc.add_table(rows=1, cols=2)
+    table.style = 'Table Grid'
+    table.style = doc.styles['Normal Table']
+    lc = table.cell(0, 0)
+    rc = table.cell(0, 1)
+    lc.text = f"Advokatska kancelarija\n{office_name}"
+    rc.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    rc.text = f"Br. predmeta: {case_number}"
+
+    doc.add_paragraph("")
+
+    # Sud
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p.add_run(court_name)
+    run.bold = True
+    run.font.size = Pt(13)
+
+    if is_appellate:
+        p2 = doc.add_paragraph()
+        p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r2 = p2.add_run("Apelacioni sud u Prištini")
+        r2.bold = True
+        r2.font.size = Pt(13)
+
+    doc.add_paragraph("")
+
+    # Sadržaj
+    for line in content.split('\n'):
+        line = line.strip()
+        if not line:
+            doc.add_paragraph("")
+            continue
+        if line.startswith('## '):
+            h = doc.add_heading(line[3:], level=2)
+        elif line.startswith('# '):
+            h = doc.add_heading(line[2:], level=1)
+            h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        else:
+            doc.add_paragraph(line)
+
+    doc.add_paragraph("")
+    doc.add_paragraph("")
+
+    # Potpis tabela
+    today = datetime.now().strftime("%d. %m. %Y")
+    sig_table = doc.add_table(rows=1, cols=2)
+    lc = sig_table.cell(0, 0)
+    rc = sig_table.cell(0, 1)
+    lc.text = f"U {sig_city},\ndana {today}. godine"
+    rc.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    rc.text = f"Punomoćnik:\n{sig_name}"
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf
+
+
+def save_submission(case_id, user_id,
+                    submission_type, court_name,
+                    case_number, content):
+    """Čuva podnesak u bazu."""
+    try:
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO case_submissions"
+                " (case_id, user_id, submission_type,"
+                " court_name, case_number, content,"
+                " status)"
+                " VALUES (?,?,?,?,?,?,'draft')",
+                (case_id, user_id, submission_type,
+                 court_name, case_number, content))
+            return conn.execute(
+                "SELECT last_insert_rowid()"
+            ).fetchone()[0]
+    except Exception:
+        return None
+
+
+def get_case_submissions(case_id):
+    """Dohvata sve podneske predmeta."""
+    try:
+        with get_db() as conn:
+            rows = conn.execute(
+                "SELECT * FROM case_submissions"
+                " WHERE case_id=?"
+                " ORDER BY created_at DESC",
+                (case_id,)).fetchall()
+            return [dict(r) for r in rows]
+    except Exception:
+        return []
+
+
+def delete_submission(sub_id, user_id):
+    """Briše podnesak."""
+    try:
+        with get_db() as conn:
+            conn.execute(
+                "DELETE FROM case_submissions"
+                " WHERE id=? AND user_id=?",
+                (sub_id, user_id))
+        return True
+    except Exception:
+        return False
 
 
 def check_subscription(user):

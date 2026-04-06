@@ -1748,85 +1748,118 @@ def format_results(results):
 
 def determine_confidence(results, query,
                          areas=None):
-    """4 nivoa pouzdanosti sa proverom oblasti
-    i ključnog zakona."""
+    """Jedinstven confidence output.
+    HIGH / MEDIUM / LIMITED / LOW.
+    Zasnovano na oblasti, ključnom zakonu
+    i domenskom pokrivanju."""
     if not results:
-        return "LOW", "Nisu pronađeni izvori."
+        return "LOW", (
+            "Nisu pronađeni relevantni"
+            " pravni izvori.")
 
-    # Bazične metrike
     top_score = results[0].get('score', 0)
     total = len(results)
     penalized = sum(
         1 for r in results
         if r.get('_penalized'))
     clean = total - penalized
-    hq = sum(1 for r in results
-             if r.get('score', 0) >= 80
-             and not r.get('_penalized'))
 
     # Provera ključnog zakona
-    has_key = True
-    missing_laws = []
-    if areas:
-        has_key, missing_laws = \
-            check_key_law_present(areas, results)
+    has_key, missing_laws = \
+        check_key_law_present(areas, results)
 
-    # Provera oblasti — koliko rezultata je
-    # iz prave oblasti
+    # Oblast match
     area_match = 0
     if areas:
+        primary = areas[0]
         for r in results:
-            if r.get('area') in areas:
+            if r.get('area') == primary:
                 area_match += 1
 
-    # VISOKA: mnogo dobrih izvora + ključni zakon
-    # + većina iz prave oblasti
-    if (hq >= 3 and top_score >= 100
-            and has_key
-            and area_match >= 2):
-        return ("HIGH",
-                "Odgovor je utemeljen u izvorima"
-                " iz odgovarajuće oblasti.")
+    # Domenski centralni match
+    primary_area = areas[0] if areas else None
+    domain_central = 0
+    if primary_area:
+        db = DOMAIN_BOOST.get(primary_area)
+        if db:
+            for r in results[:5]:
+                cl = (
+                    r.get('content', '')
+                    or '').lower()
+                tl = (
+                    r.get('title', '')
+                    or '').lower()
+                hits = sum(
+                    1 for term in db["central"]
+                    if term in cl or term in tl)
+                if hits > 0:
+                    domain_central += 1
 
-    # SREDNJA: ima dobrih izvora ali možda fali
-    # ključni zakon ili oblast nije savršena
-    if (hq >= 1 and top_score >= 60
-            and (has_key or area_match >= 1)):
-        note = ""
+    # Kvalitetni rezultati
+    hq = sum(
+        1 for r in results
+        if r.get('score', 0) >= 80
+        and not r.get('_penalized'))
+
+    # ── HIGH ──────────────────────────────
+    # Direktni izvori, ključni zakon prisutan,
+    # domenski termini nađeni
+    if (hq >= 3
+            and top_score >= 100
+            and has_key
+            and area_match >= 2
+            and domain_central >= 2):
+        return (
+            "HIGH",
+            "Odgovor je utemeljen u direktnim"
+            " izvorima iz odgovarajuće oblasti.")
+
+    # ── MEDIUM ────────────────────────────
+    # Ima dobrih izvora, oblast je prava,
+    # ali pokrivenost nije potpuna
+    if (hq >= 1
+            and top_score >= 60
+            and area_match >= 1
+            and (has_key or domain_central >= 1)):
+        note = (
+            "Odgovor je delimično utemeljen"
+            " u izvorima.")
         if not has_key and missing_laws:
-            note = (
-                f" Ključni izvor"
+            note += (
+                f" Ključni propis"
                 f" ({', '.join(missing_laws)})"
                 f" nije pronađen u bazi.")
-        return ("MEDIUM",
-                "Odgovor je delimično utemeljen"
-                " u izvorima." + note)
+        return "MEDIUM", note
 
-    # OGRANIČENA: ima nešto ali nije ubedljivo
+    # ── LIMITED ───────────────────────────
+    # Ima nešto ali nije centralno relevantno
     if clean >= 1 and top_score >= 30:
-        note = ""
+        note = "Pronađeni su ograničeni izvori."
         if not has_key and missing_laws:
-            note = (
-                f" Ključni izvor"
+            note += (
+                f" Ključni propis"
                 f" ({', '.join(missing_laws)})"
                 f" nije pronađen u bazi.")
         if penalized > clean:
             note += (
-                " Većina pronađenih izvora"
-                " je iz druge oblasti prava.")
-        return ("LIMITED",
-                "Pronađeni su ograničeni"
-                " izvori." + note)
+                " Većina izvora je iz"
+                " druge oblasti prava.")
+        if domain_central == 0:
+            note += (
+                " Direktne norme za ovo"
+                " pitanje nisu pronađene.")
+        return "LIMITED", note
 
-    # NISKA: nema relevantnih izvora
-    note = "Nisu pronađeni relevantni izvori."
+    # ── LOW ───────────────────────────────
+    note = (
+        "Nisu pronađeni dovoljno relevantni"
+        " pravni izvori.")
     if missing_laws:
         note += (
-            f" Ključni izvor"
+            f" Ključni propis"
             f" ({', '.join(missing_laws)})"
             f" nije u bazi.")
-    return ("LOW", note)
-
+    return "LOW", note
 
 def verify_citations(resp, results):
     cited = re.findall(

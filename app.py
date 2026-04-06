@@ -877,12 +877,6 @@ def init_database():
                 created_at TEXT DEFAULT (datetime('now')),
                 updated_at TEXT DEFAULT (datetime('now'))
             )""")
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                owner_id INTEGER NOT NULL,
-                title TEXT NOT NULL,
-                description TEXT DEFAULT '',
-                created_at TEXT DEFAULT (datetime('now'))
-            )""")
             c.execute("""CREATE TABLE IF NOT EXISTS case_messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 case_id INTEGER NOT NULL,

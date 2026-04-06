@@ -1336,12 +1336,22 @@ def detect_legal_area(q):
         sc = 0
         for kw in kws:
             if kw in q_lower:
-                # Duže ključne reči nose više
                 sc += 1 + (len(kw) > 6)
         if sc >= 1:
             det.append((area, sc))
     det.sort(key=lambda x: x[1], reverse=True)
-    return [a for a, _ in det[:3]]
+    if not det:
+        return []
+    # Ako prva oblast ima duplo veci score
+    # od druge — koristi samo prvu
+    if len(det) >= 2:
+        if det[0][1] >= det[1][1] * 2:
+            return [det[0][0]]
+    # Ako ima samo jedna oblast
+    if len(det) == 1:
+        return [det[0][0]]
+    # Inace vrati max 2, ne 3
+    return [a for a, _ in det[:2]]
 
 def detect_target_law(q):
     q = q.lower()

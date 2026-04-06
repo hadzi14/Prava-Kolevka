@@ -1417,107 +1417,108 @@ def filter_irrelevant_sources(results, areas):
         reverse=True)
     return filtered
 
-def score_article(art, law, base):
-        """Računa score za članak.
-        Koristi DOMAIN_BOOST za sve oblasti."""
-        content_l = art.get(
-            "content", "").lower()
-        title_l = (
-            art.get("title", "") or "").lower()
-        score = base
+def score_article(art, law, base,
+                  kws, t_areas, t_laws,
+                  is_scope_q):
+    """
+    Računa relevantnost člana.
+    Redosled: base → keywords → oblast →
+    zakon → scope → domain_boost →
+    cross_area_veto → floor
+    """
+    content_l = (art.get("content", "") or "").lower()
+    title_l = (art.get("title", "") or "").lower()
+    score = base
 
-        # 1. Keyword match
-        kw_hits = sum(
-            1 for k in kws
-            if k in content_l or k in title_l)
-        score += kw_hits * 12
+    # 1. Keyword match u sadržaju
+    kw_hits = sum(
+        1 for k in kws
+        if k in content_l or k in title_l)
+    score += kw_hits * 12
 
-        # 2. Title match bonus
-        title_kw = sum(
-            1 for k in kws if k in title_l)
-        score += title_kw * 20
+    # 2. Keyword match u naslovu — ekstra bonus
+    title_kw = sum(
+        1 for k in kws if k in title_l)
+    score += title_kw * 20
 
-        # 3. Oblast match
-        if t_areas and law.get("area") in t_areas:
-            score += 25
+    # 3. Oblast match
+    if t_areas and law.get("area") in t_areas:
+        score += 25
 
-        # 4. Tačan zakon match
-        if t_laws:
-            name_l = law.get(
-                "name_sr", "").lower()
-            short_l = law.get(
-                "short_name", "").lower()
-            for ln in t_laws:
-                ln_l = ln.lower()
-                if (ln_l in name_l
-                        or ln_l in short_l):
-                    score += 40
-                    break
-
-        # 5. Scope boost
-        if is_scope_q:
-            art_num_str = art.get(
-                "article_number", "999")
-            try:
-                art_num = int(
-                    re.sub(
-                        r'[^0-9]', '',
-                        art_num_str) or 999)
-            except Exception:
-                art_num = 999
-            if art_num <= 3:
+    # 4. Tačan zakon match
+    if t_laws:
+        name_l = (law.get("name_sr", "") or "").lower()
+        short_l = (law.get("short_name", "") or "").lower()
+        for ln in t_laws:
+            if ln.lower() in name_l or ln.lower() in short_l:
                 score += 40
-            elif art_num <= 10:
-                score += 15
-            scope_title = [
-                "cilj", "predmet", "oblast",
-                "definicij", "pojm", "načel",
-                "nacela", "svrha", "primena",
-                "opšte", "opste", "osnov"]
-            if any(
-                    st_kw in title_l
-                    for st_kw in scope_title):
-                score += 35
+                break
 
-        # 6. Penalizacija nerelevantnih termina
-        if irr_terms:
-            irr_hits = sum(
-                1 for it in irr_terms
-                if it in content_l
-                or it in title_l)
-            if irr_hits > 0:
-                score -= irr_hits * 25
-                score = max(1, score)
+    # 5. Scope boost — rani članovi za pitanja
+    #    o cilju, oblasti, definicijama
+    if is_scope_q:
+        try:
+            art_num = int(
+                re.sub(r'[^0-9]', '',
+                       art.get("article_number",
+                                "999")) or 999)
+        except Exception:
+            art_num = 999
+        if art_num <= 3:
+            score += 40
+        elif art_num <= 10:
+            score += 15
+        scope_titles = [
+            "cilj", "predmet", "oblast",
+            "definicij", "pojm", "načel",
+            "nacela", "svrha", "primena",
+            "opšte", "opste", "osnov"]
+        if any(st_kw in title_l
+               for st_kw in scope_titles):
+            score += 35
 
-        # 7. Penalizacija ako 0 keyword matcheva
-        if kw_hits == 0 and not is_scope_q:
-            score = max(1, score // 3)
+    # 6. Zero keyword penalty
+    #    Ako nema nijednog keyword hita
+    #    i nije scope pitanje — drastično smanji
+    if kw_hits == 0 and not is_scope_q:
+        score = max(1, score // 4)
 
-        # 8. DOMENSKI BOOST za sve oblasti
-        primary_area = (
-            t_areas[0] if t_areas else None)
-        if primary_area:
-            db = DOMAIN_BOOST.get(primary_area)
-            if db:
-                central_hits = sum(
-                    1 for term in db["central"]
-                    if term in content_l
-                    or term in title_l)
-                peripheral_hits = sum(
-                    1 for term in db["peripheral"]
-                    if term in content_l
-                    or term in title_l)
-                score += (
-                    central_hits
-                    * db["central_score"])
-                if (peripheral_hits > 0
-                        and central_hits == 0):
-                    score = max(
-                        1,
-                        score - peripheral_hits
-                        * db["peripheral_penalty"])
+    # 7. DOMAIN BOOST
+    #    Nagrađuje centralne termine oblasti
+    #    Penalizuje periferne ako nema centralnih
+    primary_area = t_areas[0] if t_areas else None
+    if primary_area:
+        db = DOMAIN_BOOST.get(primary_area)
+        if db:
+            cap = db.get("cap", 3)
+            central_hits = min(cap, sum(
+                1 for term in db["central"]
+                if term in content_l
+                or term in title_l))
+            peripheral_hits = sum(
+                1 for term in db["peripheral"]
+                if term in content_l
+                or term in title_l)
+            score += central_hits * db["central_score"]
+            if peripheral_hits > 0 and central_hits == 0:
+                score = max(
+                    1,
+                    score - peripheral_hits
+                    * db["peripheral_penalty"])
 
-        return score
+    # 8. CROSS-AREA VETO
+    #    Ako zakon pripada nekompatibilnoj oblasti
+    #    — drastično smanji score, ne vraćaj 0
+    #    da se ne bi prikazivao ali neka ostane u listi
+    #    kao low-score fallback
+    if primary_area:
+        vetoed_areas = CROSS_AREA_VETO.get(
+            primary_area, [])
+        law_area = law.get("area", "")
+        if law_area in vetoed_areas:
+            score = max(1, score // 8)
+
+    return score
 
 def search_laws(query, max_results=15):
     q = query.lower()

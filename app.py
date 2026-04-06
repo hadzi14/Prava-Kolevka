@@ -2168,6 +2168,9 @@ def query_ai(question, case_doc_vs=None):
         except Exception:
             pass
 
+     # Anonimizuj pre slanja na OpenAI
+    question_anon = anonymize_for_ai(question)
+
     results = search_laws(question)
     conf_level, conf_note = determine_confidence(
         results, question, t_areas)
@@ -2176,6 +2179,7 @@ def query_ai(question, case_doc_vs=None):
     has_key, missing_key = check_key_law_present(
         t_areas, results)
 
+        results = search_laws(question)
     ctx = format_results(results)
 
     doc_ctx = "(Nema dokumenata.)"
@@ -2280,7 +2284,7 @@ def query_ai(question, case_doc_vs=None):
 
     prompt = SYSTEM_PROMPT.format(
         law_context=ctx, doc_context=doc_ctx,
-        question=question + extra,
+        question=question_anon + extra,
         detected_area=area_str,
         source_note=source_note)
     try:

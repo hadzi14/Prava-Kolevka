@@ -736,6 +736,44 @@ def safe_text(text):
     t = t.replace('\ufeff', '')
     return t.strip()
 
+def anonymize_for_ai(text):
+    """Anonimizuje lične podatke pre slanja
+    na OpenAI API. Zamenjuje JMBG, telefone,
+    emailove, brojeve dokumenata."""
+    if not text:
+        return text
+    t = str(text)
+    # JMBG — 13 cifara
+    t = re.sub(
+        r'\b\d{13}\b',
+        '[JMBG]', t)
+    # Broj lične karte — format Kosova
+    t = re.sub(
+        r'\b\d{9}\b',
+        '[BR_LK]', t)
+    # Telefon — različiti formati
+    t = re.sub(
+        r'\b(?:\+381|\+383|00381|00383)?'
+        r'[\s\-]?(?:\(0\)|0)?'
+        r'[\s\-]?\d{2}[\s\-]?\d{3}'
+        r'[\s\-]?\d{3,4}\b',
+        '[TEL]', t)
+    # Email
+    t = re.sub(
+        r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+'
+        r'\.[a-zA-Z]{2,}',
+        '[EMAIL]', t)
+    # Broj bankovnog računa
+    t = re.sub(
+        r'\b\d{3}[\s\-]?\d{9,13}'
+        r'[\s\-]?\d{2}\b',
+        '[RACUN]', t)
+    # Broj pasoša
+    t = re.sub(
+        r'\b[A-Z]{2}\d{7}\b',
+        '[PASOSH]', t)
+    return t
+
 
 def safe_html(text):
     """Escapuje HTML karaktere u stringu."""

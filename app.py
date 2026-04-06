@@ -736,16 +736,15 @@ SHORTNAME_MAP = {
     "ustav": ["Ustav Kosova",
               "Ustav Republike Kosovo"],
     "ustav kosova": ["Ustav Kosova"],
-     "zpd": ["Zakon o privrednim društvima"],
-    },
+    "zpd": ["Zakon o privrednim društvima"],
 }
+
 SERBIA_MARKERS = [
     "zakon republike srbije", "zakon rs",
     "službeni glasnik rs", "republika srbija",
     "po srpskom pravu", "u srbiji",
     "zakon srbije",
 ]
-
 
 # ═══════════════════════════════════════════════════════════════
 #  HELPER: ČIST PRIKAZ STRINGOVA

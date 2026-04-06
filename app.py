@@ -1687,7 +1687,7 @@ def search_laws(query, max_results=15):
                     for art in early:
                         r = art_to_result(art, law)
                         sc = score_article(art, law, 60,
-                   kws, t_areas, t_laws, is_scope_q
+                   kws, t_areas, t_laws, is_scope_q)
                         add(r, sc)
 
     except Exception as e:

@@ -316,9 +316,35 @@ SCOPE_KEYWORDS = [
     "svrha", "opšte odredbe", "opste odredbe",
     "osnovna načela", "osnovna nacela",
 ]
-
+ 
 IRRELEVANT_PATTERNS = {
-    # ═══════════════════════════════════════════════════════════════
+    "Radno pravo": [
+        "prodaja po uzorku", "predugovor",
+        "punomoćje", "punomocje", "oglas",
+        "poklonu", "poklon", "testament",
+        "nasledj", "menic", "zaloga",
+        "skladište", "skladiste", "prevoz robe",
+        "osiguranje imovine", "lizing",
+        "komisioni", "posredovanje u prometu",
+        "turistički", "turisticki",
+    ],
+    "Krivično pravo": [
+        "zakup", "najam", "kupoprodaj",
+        "alimentacij", "razvod", "bračn",
+        "zarada", "plata", "radni odnos",
+    ],
+    "Porodično pravo": [
+        "krivičn", "krivicn", "kazna zatvora",
+        "optužnic", "optuznic", "pritvor",
+    ],
+    "Obligaciono pravo": [
+        "otkaz", "radni odnos", "zaposleni",
+        "poslodavac", "sindikat", "štrajk",
+        "radno vreme", "prekovremeni",
+    ],
+}
+
+# ═══════════════════════════════════════════════════════════════
 #  DOMENSKI BOOST — centralni termini po oblasti
 # ═══════════════════════════════════════════════════════════════
 
@@ -591,7 +617,7 @@ DOMAIN_BOOST = {
             "hipoteka",
             "pravo preče kupovine",
             "pravo prece kupovine",
-            "uknjižba", "uknjizbа",
+            "uknjižba", "uknjizba",
         ],
         "peripheral": [
             "opšte odredbe", "opste odredbe",
@@ -622,6 +648,8 @@ DOMAIN_BOOST = {
         "peripheral_penalty": 10,
     },
 }
+
+SHORTNAME_MAP = {
 
 SHORTNAME_MAP = {
     "kz": ["Krivični zakonik"],

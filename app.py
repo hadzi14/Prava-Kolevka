@@ -316,7 +316,7 @@ SCOPE_KEYWORDS = [
     "svrha", "opšte odredbe", "opste odredbe",
     "osnovna načela", "osnovna nacela",
 ]
- IRRELEVANT_PATTERNS = {
+  IRRELEVANT_PATTERNS = {
     "Radno pravo": [
         "prodaja po uzorku", "predugovor",
         "punomoćje", "punomocje", "oglas",

@@ -4547,6 +4547,11 @@ def tab_cases():
         else:
             st.text("Nema dokumenata.")
 
+     # Podnesci — expander unutar predmeta
+    with st.expander(
+            "Podnesci predmeta",
+            expanded=False):
+        tab_submissions(active_id, user)
     messages = get_case_messages(active_id)
     for msg in messages:
         if not isinstance(msg, dict):

@@ -866,6 +866,18 @@ def init_database():
                 created_at TEXT DEFAULT (datetime('now'))
             )""")
             c.execute("""CREATE TABLE IF NOT EXISTS cases (
+            c.execute("""CREATE TABLE IF NOT EXISTS case_submissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                submission_type TEXT NOT NULL,
+                court_name TEXT DEFAULT '',
+                case_number TEXT DEFAULT '',
+                content TEXT NOT NULL,
+                status TEXT DEFAULT 'draft',
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now'))
+            )""")
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 owner_id INTEGER NOT NULL,
                 title TEXT NOT NULL,
@@ -896,7 +908,19 @@ def init_database():
                 c.execute(
                     "ALTER TABLE laws ADD COLUMN"
                     " hierarchy_level INTEGER DEFAULT 3")
-            admin = c.execute(
+            try:
+                c.execute("SELECT signature_city FROM users LIMIT 1")
+            except Exception:
+                c.execute("ALTER TABLE users ADD COLUMN signature_city TEXT DEFAULT ''")
+            try:
+                c.execute("SELECT signature_name FROM users LIMIT 1")
+            except Exception:
+                c.execute("ALTER TABLE users ADD COLUMN signature_name TEXT DEFAULT ''")
+            try:
+                c.execute("SELECT office_name FROM users LIMIT 1")
+            except Exception:
+                c.execute("ALTER TABLE users ADD COLUMN office_name TEXT DEFAULT ''")
+                admin = c.execute(
                 "SELECT id FROM users WHERE email=?",
                 (ADMIN_EMAIL,)).fetchone()
             if not admin:

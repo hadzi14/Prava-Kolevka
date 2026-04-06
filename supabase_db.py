@@ -406,5 +406,313 @@ def sb_find_parent_law(title_hint):
         f"short_name.ilike.%{search_value}%,"
         f"law_number.ilike.%{search_value}%"
     ).limit(10).execute()
+    # ═══════════════════════════════════════════════
+#  USERS
+# ═══════════════════════════════════════════════
+
+def sb_get_user_by_email(email):
+    try:
+        r = supabase.table("users")\
+            .select("*")\
+            .eq("email", email.lower().strip())\
+            .execute()
+        if r.data:
+            return r.data[0]
+        return None
+    except Exception:
+        return None
+
+
+def sb_create_user(user_data):
+    try:
+        r = supabase.table("users")\
+            .insert(user_data)\
+            .execute()
+        if r.data:
+            return r.data[0]["id"]
+        return None
+    except Exception:
+        return None
+
+
+def sb_update_user(user_id, updates):
+    try:
+        supabase.table("users")\
+            .update(updates)\
+            .eq("id", user_id)\
+            .execute()
+        return True
+    except Exception:
+        return False
+
+
+def sb_get_all_users():
+    try:
+        r = supabase.table("users")\
+            .select("*")\
+            .eq("role", "user")\
+            .order("full_name")\
+            .execute()
+        return r.data or []
+    except Exception:
+        return []
+
+
+# ═══════════════════════════════════════════════
+#  CASES
+# ═══════════════════════════════════════════════
+
+def sb_create_case(owner_id, title):
+    try:
+        r = supabase.table("cases")\
+            .insert({
+                "owner_id": owner_id,
+                "title": title})\
+            .execute()
+        if r.data:
+            return r.data[0]["id"]
+        return None
+    except Exception:
+        return None
+
+
+def sb_get_user_cases(owner_id):
+    try:
+        r = supabase.table("cases")\
+            .select("*")\
+            .eq("owner_id", owner_id)\
+            .order("created_at",
+                   desc=True)\
+            .execute()
+        return r.data or []
+    except Exception:
+        return []
+
+
+def sb_delete_case(case_id, owner_id):
+    try:
+        supabase.table("case_messages")\
+            .delete()\
+            .eq("case_id", case_id)\
+            .execute()
+        supabase.table("case_documents")\
+            .delete()\
+            .eq("case_id", case_id)\
+            .execute()
+        supabase.table("case_submissions")\
+            .delete()\
+            .eq("case_id", case_id)\
+            .execute()
+        supabase.table("cases")\
+            .delete()\
+            .eq("id", case_id)\
+            .eq("owner_id", owner_id)\
+            .execute()
+        return True
+    except Exception:
+        return False
+
+
+# ═══════════════════════════════════════════════
+#  CASE MESSAGES
+# ═══════════════════════════════════════════════
+
+def sb_get_case_messages(case_id):
+    try:
+        r = supabase.table("case_messages")\
+            .select("*")\
+            .eq("case_id", case_id)\
+            .order("created_at")\
+            .execute()
+        return r.data or []
+    except Exception:
+        return []
+
+
+def sb_save_case_message(case_id, role,
+                          content,
+                          sources_html="",
+                          confidence=""):
+    try:
+        supabase.table("case_messages")\
+            .insert({
+                "case_id": case_id,
+                "role": role,
+                "content": content,
+                "sources_html": sources_html,
+                "confidence": confidence})\
+            .execute()
+        return True
+    except Exception:
+        return False
+
+
+# ═══════════════════════════════════════════════
+#  CASE DOCUMENTS
+# ═══════════════════════════════════════════════
+
+def sb_add_case_document(case_id, filename,
+                          text_content,
+                          language="sr"):
+    try:
+        r = supabase.table("case_documents")\
+            .insert({
+                "case_id": case_id,
+                "filename": filename,
+                "text_content": text_content,
+                "language": language})\
+            .execute()
+        if r.data:
+            return r.data[0]["id"]
+        return None
+    except Exception:
+        return None
+
+
+def sb_get_case_documents(case_id):
+    try:
+        r = supabase.table("case_documents")\
+            .select(
+                "id, case_id, filename,"
+                " language, created_at,"
+                " length(text_content)"
+                " as size")\
+            .eq("case_id", case_id)\
+            .order("created_at")\
+            .execute()
+        return r.data or []
+    except Exception:
+        return []
+
+
+def sb_get_document_text(doc_id):
+    try:
+        r = supabase.table("case_documents")\
+            .select("text_content")\
+            .eq("id", doc_id)\
+            .execute()
+        if r.data:
+            return r.data[0]["text_content"]
+        return ""
+    except Exception:
+        return ""
+
+
+def sb_delete_case_document(doc_id, case_id):
+    try:
+        supabase.table("case_documents")\
+            .delete()\
+            .eq("id", doc_id)\
+            .eq("case_id", case_id)\
+            .execute()
+        return True
+    except Exception:
+        return False
+
+
+# ═══════════════════════════════════════════════
+#  CASE SUBMISSIONS
+# ═══════════════════════════════════════════════
+
+def sb_save_submission(case_id, user_id,
+                        submission_type,
+                        court_name,
+                        case_number, content):
+    try:
+        r = supabase.table("case_submissions")\
+            .insert({
+                "case_id": case_id,
+                "user_id": user_id,
+                "submission_type": submission_type,
+                "court_name": court_name,
+                "case_number": case_number,
+                "content": content,
+                "status": "draft"})\
+            .execute()
+        if r.data:
+            return r.data[0]["id"]
+        return None
+    except Exception:
+        return None
+
+
+def sb_get_case_submissions(case_id):
+    try:
+        r = supabase.table("case_submissions")\
+            .select("*")\
+            .eq("case_id", case_id)\
+            .order("created_at", desc=True)\
+            .execute()
+        return r.data or []
+    except Exception:
+        return []
+
+
+def sb_delete_submission(sub_id, user_id):
+    try:
+        supabase.table("case_submissions")\
+            .delete()\
+            .eq("id", sub_id)\
+            .eq("user_id", user_id)\
+            .execute()
+        return True
+    except Exception:
+        return False
+
+
+# ═══════════════════════════════════════════════
+#  PAYMENTS + LOGS
+# ═══════════════════════════════════════════════
+
+def sb_save_payment(user_id, amount,
+                     payment_date,
+                     period_start,
+                     period_end, method,
+                     recorded_by):
+    try:
+        supabase.table("payments")\
+            .insert({
+                "user_id": user_id,
+                "amount": amount,
+                "payment_date": payment_date,
+                "period_start": period_start,
+                "period_end": period_end,
+                "method": method,
+                "recorded_by": recorded_by,
+                "status": "completed"})\
+            .execute()
+        return True
+    except Exception:
+        return False
+
+
+def sb_get_payments(month_start=None):
+    try:
+        q = supabase.table("payments")\
+            .select("*")\
+            .eq("status", "completed")
+        if month_start:
+            q = q.gte("payment_date", month_start)
+        r = q.execute()
+        return r.data or []
+    except Exception:
+        return []
+
+
+def sb_log_action(user_id, action, details=""):
+    try:
+        safe = re.sub(
+            r'[a-zA-Z0-9._%+-]+@[^\s]+',
+            '[EMAIL]',
+            (details or "")[:80])
+        supabase.table("usage_logs")\
+            .insert({
+                "user_id": user_id,
+                "action": action,
+                "details": safe})\
+            .execute()
+        return True
+    except Exception:
+        return False
 
     return r.data or []

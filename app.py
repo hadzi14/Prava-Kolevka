@@ -865,7 +865,6 @@ def init_database():
                 content TEXT NOT NULL,
                 created_at TEXT DEFAULT (datetime('now'))
             )""")
-            c.execute("""CREATE TABLE IF NOT EXISTS cases (
             c.execute("""CREATE TABLE IF NOT EXISTS case_submissions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 case_id INTEGER NOT NULL,

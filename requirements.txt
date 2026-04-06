@@ -14,3 +14,4 @@ bcrypt
 tiktoken
 stripe
 supabase
+reportlab

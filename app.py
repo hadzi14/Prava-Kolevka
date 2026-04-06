@@ -1546,13 +1546,6 @@ def search_laws(query, max_results=15):
     is_scope_q = any(
         sk in q for sk in SCOPE_KEYWORDS)
 
-    # Nekompatibilni termini za detekovanu oblast
-    irr_terms = []
-    if t_areas:
-        for area in t_areas[:2]:
-            irr_terms.extend(
-                IRRELEVANT_PATTERNS.get(area, []))
-
     def add(r, score):
         k = (f"{r.get('name_sr', '')}|"
              f"{r.get('article_number', '')}|"
@@ -1605,8 +1598,8 @@ def search_laws(query, max_results=15):
                 if not law:
                     continue
                 r = art_to_result(art, law)
-                sc = score_article(
-                    art, law, 150)
+                sc = score_article(art, law, 150,
+                   kws, t_areas, t_laws, is_scope_q)
                 add(r, sc)
 
         # 2. Multi-keyword pretraga
@@ -1637,8 +1630,8 @@ def search_laws(query, max_results=15):
                 # matchovanih ključnih reči
                 mc = art.get("_match_count", 1)
                 base = 20 + mc * 15
-                sc = score_article(
-                    art, law, base)
+                sc = score_article(art, law, base,
+                   kws, t_areas, t_laws, is_scope_q)
                 add(r, sc)
 
             # Ako nemamo target zakon, pretražuj
@@ -1661,8 +1654,8 @@ def search_laws(query, max_results=15):
                             mc = art.get(
                                 "_match_count", 1)
                             base = 30 + mc * 15
-                            sc = score_article(
-                                art, law, base)
+                            sc = score_article(art, law, 80,
+                   kws, t_areas, t_laws, is_scope_q)
                             add(r, sc)
 
         # 3. Scope pitanja — dodaj rane članke
@@ -1693,8 +1686,8 @@ def search_laws(query, max_results=15):
                         lid, 5)
                     for art in early:
                         r = art_to_result(art, law)
-                        sc = score_article(
-                            art, law, 60)
+                        sc = score_article(art, law, 60,
+                   kws, t_areas, t_laws, is_scope_q
                         add(r, sc)
 
     except Exception as e:

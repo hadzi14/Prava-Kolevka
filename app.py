@@ -20,10 +20,29 @@ try:
         sb_find_laws_by_name,
         sb_count_articles,
         sb_find_parent_law,
+        # Novi importi
+        sb_get_user_by_email,
+        sb_create_user,
+        sb_update_user,
+        sb_get_all_users,
+        sb_create_case,
+        sb_get_user_cases,
+        sb_delete_case,
+        sb_get_case_messages,
+        sb_save_case_message,
+        sb_add_case_document,
+        sb_get_case_documents,
+        sb_get_document_text,
+        sb_delete_case_document,
+        sb_save_submission,
+        sb_get_case_submissions,
+        sb_delete_submission,
+        sb_save_payment,
+        sb_get_payments,
+        sb_log_action,
     )
     SUPABASE_READY = True
 except ImportError:
-    SUPABASE_READY = False
     SUPABASE_READY = False
 
 try:

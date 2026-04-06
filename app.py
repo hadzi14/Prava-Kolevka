@@ -2362,35 +2362,50 @@ def query_ai(question, case_doc_vs=None):
 # ═══════════════════════════════════════════════════════════════
 
 def create_case(user_id, title):
+    if SUPABASE_READY:
+        cid = sb_create_case(user_id, title)
+        if cid:
+            return cid
+    # Fallback SQLite
     with get_db() as conn:
         conn.execute(
             "INSERT INTO cases (owner_id,title)"
             " VALUES(?,?)", (user_id, title))
         return conn.execute(
-            "SELECT last_insert_rowid()").fetchone()[0]
+            "SELECT last_insert_rowid()"
+        ).fetchone()[0]
 
 
 def get_user_cases(user_id):
+    if SUPABASE_READY:
+        cases = sb_get_user_cases(user_id)
+        if cases is not None:
+            return cases
+    # Fallback SQLite
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT * FROM cases WHERE owner_id=?"
+            "SELECT * FROM cases"
+            " WHERE owner_id=?"
             " ORDER BY created_at DESC",
             (user_id,)).fetchall()
         return [dict(r) for r in rows]
 
 
 def delete_case(case_id, user_id):
-    with get_db() as conn:
-        conn.execute(
-            "DELETE FROM case_messages"
-            " WHERE case_id=?", (case_id,))
-        conn.execute(
-            "DELETE FROM case_documents"
-            " WHERE case_id=?", (case_id,))
-        conn.execute(
-            "DELETE FROM cases"
-            " WHERE id=? AND owner_id=?",
-            (case_id, user_id))
+    if SUPABASE_READY:
+        sb_delete_case(case_id, user_id)
+    else:
+        with get_db() as conn:
+            conn.execute(
+                "DELETE FROM case_messages"
+                " WHERE case_id=?", (case_id,))
+            conn.execute(
+                "DELETE FROM case_documents"
+                " WHERE case_id=?", (case_id,))
+            conn.execute(
+                "DELETE FROM cases"
+                " WHERE id=? AND owner_id=?",
+                (case_id, user_id))
     if st.session_state.get(
             "active_case_id") == case_id:
         st.session_state.active_case_id = None
@@ -2399,8 +2414,12 @@ def delete_case(case_id, user_id):
         st.session_state.case_doc_vs = None
         st.session_state.case_doc_vs_id = None
 
-
 def get_case_messages(case_id):
+    if SUPABASE_READY:
+        msgs = sb_get_case_messages(case_id)
+        if msgs is not None:
+            return msgs
+    # Fallback SQLite
     with get_db() as conn:
         rows = conn.execute(
             "SELECT role, content,"
@@ -2415,24 +2434,35 @@ def get_case_messages(case_id):
 def save_case_message(case_id, role, content,
                       sources_html="",
                       confidence=""):
-    with get_db() as conn:
-        conn.execute(
-            "INSERT INTO case_messages"
-            " (case_id,role,content,"
-            "sources_html,confidence)"
-            " VALUES(?,?,?,?,?)",
-            (case_id, role, content,
-             sources_html, confidence))
-
+    if SUPABASE_READY:
+        sb_save_case_message(
+            case_id, role, content,
+            sources_html, confidence)
+    else:
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO case_messages"
+                " (case_id,role,content,"
+                "sources_html,confidence)"
+                " VALUES(?,?,?,?,?)",
+                (case_id, role, content,
+                 sources_html, confidence))
 
 def add_case_document(case_id, filename,
                       text_content, language="sr"):
-    with get_db() as conn:
-        conn.execute(
-            "INSERT INTO case_documents"
-            " (case_id,filename,text_content,language)"
-            " VALUES(?,?,?,?)",
-            (case_id, filename, text_content, language))
+    if SUPABASE_READY:
+        sb_add_case_document(
+            case_id, filename,
+            text_content, language)
+    else:
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO case_documents"
+                " (case_id,filename,"
+                "text_content,language)"
+                " VALUES(?,?,?,?)",
+                (case_id, filename,
+                 text_content, language))
     if st.session_state.get(
             "case_doc_vs_id") == case_id:
         st.session_state.case_doc_vs = None
@@ -2440,6 +2470,11 @@ def add_case_document(case_id, filename,
 
 
 def get_case_documents(case_id):
+    if SUPABASE_READY:
+        docs = sb_get_case_documents(case_id)
+        if docs is not None:
+            return docs
+    # Fallback SQLite
     with get_db() as conn:
         rows = conn.execute(
             "SELECT id,filename,language,"
@@ -2453,11 +2488,14 @@ def get_case_documents(case_id):
 
 
 def delete_case_document(doc_id, case_id):
-    with get_db() as conn:
-        conn.execute(
-            "DELETE FROM case_documents"
-            " WHERE id=? AND case_id=?",
-            (doc_id, case_id))
+    if SUPABASE_READY:
+        sb_delete_case_document(doc_id, case_id)
+    else:
+        with get_db() as conn:
+            conn.execute(
+                "DELETE FROM case_documents"
+                " WHERE id=? AND case_id=?",
+                (doc_id, case_id))
     if st.session_state.get(
             "case_doc_vs_id") == case_id:
         st.session_state.case_doc_vs = None

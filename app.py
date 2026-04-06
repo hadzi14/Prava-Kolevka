@@ -325,12 +325,6 @@ AREA_KEY_LAWS = {
             "zakon o privrednim drustvima",
             "zpd",
         ],
-        "label": "Zakon o privrednim društvima",
-        "incompatible": [
-            "Krivično pravo",
-            "Krivični postupak",
-            "Porodično pravo",
-        ],
     },
 }
 SCOPE_KEYWORDS = [
@@ -675,21 +669,7 @@ DOMAIN_BOOST = {
         "central_score": 20,
         "peripheral_penalty": 15,
         "cap": 3,
-    },
-}
-SHORTNAME_MAP = {
-    "kz": ["Krivični zakonik"],
-    "zkp": ["Zakonik o krivičnom postupku",
-            "Zakon o krivičnom postupku"],
-    "zoo": ["Zakon o obligacionim odnosima"],
-    "zpp": ["Zakon o parničnom postupku"],
-    "zor": ["Zakon o radu"],
-    "pz": ["Porodični zakon"],
-    "zup": ["Zakon o upravnom postupku"],
-    "ustav": ["Ustav Kosova",
-              "Ustav Republike Kosovo"],
-    "ustav kosova": ["Ustav Kosova"],
-     "Privredno pravo": {
+         "Privredno pravo": {
         "central": [
             "privredno društvo",
             "osnivanje društva",
@@ -715,6 +695,22 @@ SHORTNAME_MAP = {
         "central_score": 20,
         "peripheral_penalty": 15,
         "cap": 3,
+    },
+    },
+}
+SHORTNAME_MAP = {
+    "kz": ["Krivični zakonik"],
+    "zkp": ["Zakonik o krivičnom postupku",
+            "Zakon o krivičnom postupku"],
+    "zoo": ["Zakon o obligacionim odnosima"],
+    "zpp": ["Zakon o parničnom postupku"],
+    "zor": ["Zakon o radu"],
+    "pz": ["Porodični zakon"],
+    "zup": ["Zakon o upravnom postupku"],
+    "ustav": ["Ustav Kosova",
+              "Ustav Republike Kosovo"],
+    "ustav kosova": ["Ustav Kosova"],
+     "zpd": ["Zakon o privrednim društvima"],
     },
 }
 SERBIA_MARKERS = [

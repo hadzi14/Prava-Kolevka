@@ -4456,8 +4456,7 @@ def render_user():
     if not OPENAI_API_KEY:
         st.error("AI nije podešen.")
         return
-
-        tabs = st.tabs(
+    tabs = st.tabs(
         ["Predmeti", "Pretraga",
          "Prevod", "Most AL-SR", "Pretplata"])
     with tabs[0]:

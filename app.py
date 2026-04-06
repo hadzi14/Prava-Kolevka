@@ -864,9 +864,27 @@ def verify_password(password, stored_hash, stored_salt):
             return True, BCRYPT_AVAILABLE
     return False, False
 
-
 def authenticate_user(email, password):
     try:
+        # Pokušaj Supabase prvo
+        if SUPABASE_READY:
+            u = sb_get_user_by_email(email)
+            if u:
+                ok, upgrade = verify_password(
+                    password,
+                    u["password_hash"],
+                    u["salt"])
+                if not ok:
+                    return None
+                if upgrade and BCRYPT_AVAILABLE:
+                    nh, ns = create_password_hash(
+                        password)
+                    sb_update_user(
+                        u["id"],
+                        {"password_hash": nh,
+                         "salt": ns})
+                return u
+        # Fallback SQLite
         with get_db() as conn:
             u = conn.execute(
                 "SELECT * FROM users WHERE email=?",
@@ -874,15 +892,11 @@ def authenticate_user(email, password):
             if not u:
                 return None
             ok, upgrade = verify_password(
-                password, u["password_hash"], u["salt"])
+                password,
+                u["password_hash"],
+                u["salt"])
             if not ok:
                 return None
-            if upgrade and BCRYPT_AVAILABLE:
-                nh, ns = create_password_hash(password)
-                conn.execute(
-                    "UPDATE users SET password_hash=?,"
-                    "salt=? WHERE id=?",
-                    (nh, ns, u["id"]))
             return dict(u)
     except Exception:
         return None

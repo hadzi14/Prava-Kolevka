@@ -177,7 +177,8 @@ LEGAL_AREAS = [
     "Prekršajno pravo", "Pravosuđe",
     "Tužilaštvo", "Advokatura",
     "Policijsko pravo", "Obligaciono pravo",
-    "Imovinsko pravo", "Ostalo",
+    "Imovinsko pravo", "Privredno pravo",
+    "Ostalo",
 ]
 
 AREA_KEYWORDS = {
@@ -237,6 +238,18 @@ AREA_KEYWORDS = {
         "imovina", "svojina", "posed", "vlasništvo",
         "katastar", "nepokretnost", "pravo svojine",
         "uzurpacija", "eksproprijacija"],
+     "Privredno pravo": [
+        "privredno", "kompanij", "preduzeće",
+        "preduzetnik", "d.o.o", "a.d",
+        "osnivanje", "likvidacij", "stečaj",
+        "ortakluk", "akcij", "udeo",
+        "skupština", "upravni odbor",
+        "zastupnik", "prokura",
+        "privredno društvo", "registracij",
+        "agencij", "tr", "sz",
+        "poslovni", "firma", "kapital",
+        "dividenda", "ulaganje",
+    ],
 }
 
 AREA_KEY_LAWS = {
@@ -305,6 +318,19 @@ AREA_KEY_LAWS = {
         "laws": ["ustav", "ustav kosova"],
         "label": "Ustav Kosova",
         "incompatible": [],
+         "Privredno pravo": {
+        "laws": [
+            "zakon o privrednim društvima",
+            "zakon o preduzecima",
+            "zakon o privrednim drustvima",
+            "zpd",
+        ],
+        "label": "Zakon o privrednim društvima",
+        "incompatible": [
+            "Krivično pravo",
+            "Krivični postupak",
+            "Porodično pravo",
+        ],
     },
 }
 SCOPE_KEYWORDS = [
@@ -372,6 +398,12 @@ CROSS_AREA_VETO = {
         "Radno pravo",
         "Porodično pravo",
         "Obligaciono pravo",
+    ],
+     "Privredno pravo": [
+        "Krivično pravo",
+        "Krivični postupak",
+        "Porodično pravo",
+        "Radno pravo",
     ],
 }
 # ═══════════════════════════════════════════════════════════════
@@ -657,6 +689,33 @@ SHORTNAME_MAP = {
     "ustav": ["Ustav Kosova",
               "Ustav Republike Kosovo"],
     "ustav kosova": ["Ustav Kosova"],
+     "Privredno pravo": {
+        "central": [
+            "privredno društvo",
+            "osnivanje društva",
+            "likvidacija",
+            "stečaj",
+            "stečajni postupak",
+            "d.o.o",
+            "a.d",
+            "akcionar",
+            "skupština društva",
+            "upravni odbor",
+            "zastupnik društva",
+            "prokura",
+            "udeo",
+            "kapital",
+            "registracija privrednog",
+        ],
+        "peripheral": [
+            "opšte odredbe",
+            "opste odredbe",
+            "definicija",
+        ],
+        "central_score": 20,
+        "peripheral_penalty": 15,
+        "cap": 3,
+    },
 }
 SERBIA_MARKERS = [
     "zakon republike srbije", "zakon rs",

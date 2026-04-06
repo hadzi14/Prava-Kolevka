@@ -4416,10 +4416,9 @@ def render_user():
         st.error("AI nije podešen.")
         return
 
-    tabs = st.tabs(
+        tabs = st.tabs(
         ["Predmeti", "Pretraga",
-         "Prevod", "Podnesci",
-         "Most AL-SR", "Pretplata"])
+         "Prevod", "Most AL-SR", "Pretplata"])
     with tabs[0]:
         tab_cases()
     with tabs[1]:
@@ -4427,10 +4426,8 @@ def render_user():
     with tabs[2]:
         tab_translate()
     with tabs[3]:
-        tab_docs()
-    with tabs[4]:
         tab_bridge()
-    with tabs[5]:
+    with tabs[4]:
         tab_subscription()
     render_footer()
     if st.button("Odjavi se", key="usr_out"):

@@ -4667,39 +4667,332 @@ def tab_translate():
             st.info("Vec srpski.")
 
 
-def tab_docs():
+def tab_submissions(case_id, user):
+    """Tab za podneske unutar predmeta."""
+    uid = user["id"]
+
     st.markdown(
-        '<div class="pk-card-gold">'
-        '<h3>Podnesci</h3></div>',
+        '<div class="pk-card">'
+        '<h3>Podnesci predmeta</h3>'
+        '</div>',
         unsafe_allow_html=True)
-    dt = st.selectbox(
-        "Tip",
-        list(DOC_TEMPLATES.keys()),
-        format_func=lambda x: (
-            DOC_TEMPLATES[x]['name']))
-    info = st.text_area(
-        "Opisite slucaj", height=200)
-    if st.button(
-            "Generisi",
-            disabled=not info,
-            use_container_width=True,
-            type="primary"):
-        tmpl = DOC_TEMPLATES[dt]
-        with st.spinner("Generisem..."):
+
+    # ── PODACI O POTPISU ──────────────────────
+    sig = get_user_signature(uid)
+    with st.expander(
+            "Podešavanja potpisa i kancelarije",
+            expanded=not sig["name"]):
+        sc1, sc2, sc3 = st.columns(3)
+        with sc1:
+            new_office = st.text_input(
+                "Advokatska kancelarija",
+                value=sig["office"],
+                key=f"sig_office_{case_id}")
+        with sc2:
+            new_city = st.text_input(
+                "Mesto (grad)",
+                value=sig["city"],
+                key=f"sig_city_{case_id}")
+        with sc3:
+            new_name = st.text_input(
+                "Ime i prezime punomoćnika",
+                value=sig["name"],
+                key=f"sig_name_{case_id}")
+        if st.button(
+                "Sačuvaj podatke",
+                key=f"save_sig_{case_id}"):
+            if save_user_signature(
+                    uid, new_city,
+                    new_name, new_office):
+                st.success("Podaci sačuvani.")
+                st.session_state.current_user[
+                    "signature_city"] = new_city
+                st.session_state.current_user[
+                    "signature_name"] = new_name
+                st.session_state.current_user[
+                    "office_name"] = new_office
+                st.rerun()
+
+    sig = get_user_signature(uid)
+
+    # ── NOVI PODNESAK ─────────────────────────
+    with st.expander(
+            "Kreiraj novi podnesak",
+            expanded=True):
+
+        nc1, nc2 = st.columns(2)
+        with nc1:
+            sub_type = st.selectbox(
+                "Tip podneska",
+                list(SUBMISSION_TYPES.keys()),
+                format_func=lambda x: (
+                    SUBMISSION_TYPES[x]),
+                key=f"sub_type_{case_id}")
+        with nc2:
+            case_number = st.text_input(
+                "Broj predmeta",
+                placeholder="npr. P. br. 123/24",
+                key=f"sub_casenum_{case_id}")
+
+        case_desc = st.text_area(
+            "Opis predmeta i relevantnih činjenica",
+            height=150,
+            placeholder=(
+                "Opišite predmet: stranke, "
+                "šta se desilo, šta tražite..."),
+            key=f"sub_desc_{case_id}")
+
+        # Prikaz dokumenta predmeta
+        case_docs = get_case_documents(case_id)
+        use_docs = False
+        if case_docs:
+            use_docs = st.checkbox(
+                f"Koristi dokumenta predmeta"
+                f" ({len(case_docs)} fajlova)",
+                value=True,
+                key=f"sub_use_docs_{case_id}")
+
+        if not sig["name"] or not sig["city"]:
+            st.warning(
+                "Popunite podatke o potpisu"
+                " i kancelariji pre generisanja.")
+
+        can_generate = (
+            case_desc.strip()
+            and sig["name"]
+            and sig["city"]
+            and sig["office"])
+
+        if st.button(
+                "Generiši podnesak",
+                disabled=not can_generate,
+                use_container_width=True,
+                type="primary",
+                key=f"gen_sub_{case_id}"):
+
+            with st.spinner(
+                    "AI analizira predmet"
+                    " i kreira podnesak..."):
+
+                # Detektuj sud
+                court_name, is_appellate = \
+                    detect_court(
+                        case_desc, sub_type)
+
+                # Dohvati tekst dokumenata
+                docs_text = ""
+                if use_docs and case_docs:
+                    try:
+                        with get_db() as conn:
+                            for d in case_docs:
+                                dt = conn.execute(
+                                    "SELECT text_content"
+                                    " FROM case_documents"
+                                    " WHERE id=?",
+                                    (d["id"],)
+                                ).fetchone()
+                                if dt:
+                                    docs_text += (
+                                        f"\n[{d['filename']}]"
+                                        f"\n{dt['text_content'][:3000]}\n")
+                    except Exception:
+                        pass
+
+                # Dohvati pravne izvore
+                law_results = search_laws(
+                    case_desc, 8)
+                law_ctx = format_results(
+                    law_results) if law_results else ""
+
+                # Generiši
+                content, _ = generate_submission(
+                    sub_type, case_desc,
+                    docs_text, law_ctx,
+                    court_name, is_appellate,
+                    case_number,
+                    sig["city"], sig["name"],
+                    sig["office"])
+
+                # Sačuvaj u session_state za review
+                st.session_state[
+                    f"draft_sub_{case_id}"] = {
+                    "content": content,
+                    "court_name": court_name,
+                    "is_appellate": is_appellate,
+                    "case_number": case_number,
+                    "sub_type": sub_type,
+                    "sub_type_name": SUBMISSION_TYPES[
+                        sub_type],
+                }
+            st.rerun()
+
+    # ── REVIEW NACRTA ────────────────────────
+    draft_key = f"draft_sub_{case_id}"
+    if draft_key in st.session_state:
+        draft = st.session_state[draft_key]
+        st.markdown("---")
+        st.markdown(
+            f"### Nacrt: {draft['sub_type_name']}")
+        st.markdown(
+            f"**Sud:** {draft['court_name']}"
+            + (" + Apelacioni sud u Prištini"
+               if draft["is_appellate"] else ""))
+
+        # Editable nacrt
+        edited = st.text_area(
+            "Pregledajte i izmenite podnesak",
+            value=draft["content"],
+            height=500,
+            key=f"edit_draft_{case_id}")
+
+        # Preview potpisa
+        today = datetime.now().strftime(
+            "%d. %m. %Y")
+        sig = get_user_signature(uid)
+        st.markdown(
+            f'<div style="margin-top:2rem;'
+            f'padding:1rem;'
+            f'border:1px solid {BORDER};'
+            f'border-radius:8px;">'
+            f'<div style="display:flex;'
+            f'justify-content:space-between;">'
+            f'<div>'
+            f'U {safe_html(sig["city"])},<br/>'
+            f'dana {today}. godine'
+            f'</div>'
+            f'<div style="text-align:right;">'
+            f'Punomoćnik:<br/>'
+            f'<strong>{safe_html(sig["name"])}'
+            f'</strong>'
+            f'</div>'
+            f'</div></div>',
+            unsafe_allow_html=True)
+
+        rc1, rc2, rc3 = st.columns(3)
+
+        with rc1:
+            if st.button(
+                    "Prihvati i sačuvaj",
+                    type="primary",
+                    use_container_width=True,
+                    key=f"accept_sub_{case_id}"):
+                sub_id = save_submission(
+                    case_id, uid,
+                    draft["sub_type"],
+                    draft["court_name"],
+                    draft["case_number"],
+                    edited)
+                if sub_id:
+                    del st.session_state[draft_key]
+                    st.success("Podnesak sačuvan.")
+                    st.rerun()
+
+        with rc2:
+            # PDF download
             try:
-                r = get_llm(0.15, 6000).invoke(
-                    [HumanMessage(
-                        content=tmpl["prompt"]
-                        .format(info=info))])
-                st.markdown(r.content)
-                w = create_word(
-                    tmpl["name"], r.content)
+                pdf_buf = create_submission_pdf(
+                    edited,
+                    draft["court_name"],
+                    draft["is_appellate"],
+                    draft["case_number"],
+                    sig["city"], sig["name"],
+                    sig["office"],
+                    draft["sub_type_name"])
                 st.download_button(
-                    "Preuzmi Word",
-                    data=w,
-                    file_name="podnesak.docx")
-            except Exception as e:
-                st.error(f"{e}")
+                    "Preuzmi PDF",
+                    data=pdf_buf,
+                    file_name=(
+                        f"podnesak_"
+                        f"{draft['sub_type']}"
+                        f"_{date.today()}.pdf"),
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key=f"dl_pdf_{case_id}")
+            except Exception:
+                # Fallback DOCX
+                docx_buf = create_submission_docx(
+                    edited,
+                    draft["court_name"],
+                    draft["is_appellate"],
+                    draft["case_number"],
+                    sig["city"], sig["name"],
+                    sig["office"])
+                st.download_button(
+                    "Preuzmi DOCX",
+                    data=docx_buf,
+                    file_name=(
+                        f"podnesak_"
+                        f"{draft['sub_type']}"
+                        f"_{date.today()}.docx"),
+                    mime=(
+                        "application/vnd.openxmlformats"
+                        "-officedocument"
+                        ".wordprocessingml.document"),
+                    use_container_width=True,
+                    key=f"dl_docx_{case_id}")
+
+        with rc3:
+            if st.button(
+                    "Odbaci nacrt",
+                    use_container_width=True,
+                    key=f"reject_sub_{case_id}"):
+                del st.session_state[draft_key]
+                st.rerun()
+
+    # ── SAČUVANI PODNESCI ────────────────────
+    submissions = get_case_submissions(case_id)
+    if submissions:
+        st.markdown("---")
+        st.markdown(
+            f"### Sačuvani podnesci"
+            f" ({len(submissions)})")
+        for s in submissions:
+            s_name = SUBMISSION_TYPES.get(
+                s["submission_type"],
+                s["submission_type"])
+            s_date = s["created_at"][:10]
+            with st.expander(
+                    f"{s_name} — {s_date}"
+                    f" | {s.get('court_name', '')}"):
+                st.text_area(
+                    "Sadržaj",
+                    value=s["content"],
+                    height=300,
+                    key=f"view_sub_{s['id']}")
+
+                sv1, sv2 = st.columns(2)
+                with sv1:
+                    try:
+                        sig = get_user_signature(uid)
+                        pdf_buf = create_submission_pdf(
+                            s["content"],
+                            s.get("court_name", ""),
+                            False,
+                            s.get("case_number", ""),
+                            sig["city"],
+                            sig["name"],
+                            sig["office"],
+                            s_name)
+                        st.download_button(
+                            "Preuzmi PDF",
+                            data=pdf_buf,
+                            file_name=(
+                                f"podnesak_"
+                                f"{s['submission_type']}"
+                                f"_{s_date}.pdf"),
+                            mime="application/pdf",
+                            use_container_width=True,
+                            key=f"dl_saved_{s['id']}")
+                    except Exception:
+                        pass
+                with sv2:
+                    if st.button(
+                            "Obriši",
+                            key=f"del_sub_{s['id']}",
+                            use_container_width=True):
+                        delete_submission(
+                            s["id"], uid)
+                        st.rerun()
 
 
 def tab_bridge():

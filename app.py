@@ -4823,7 +4823,7 @@ def tab_submissions(case_id, user):
                 " i kancelariji pre generisanja.")
 
         can_generate = (
-            case_desc.strip()
+            bool(messages)
             and sig["name"]
             and sig["city"]
             and sig["office"])
@@ -4839,10 +4839,20 @@ def tab_submissions(case_id, user):
                     "AI analizira predmet"
                     " i kreira podnesak..."):
 
-                # Detektuj sud
+                                # Kontekst = chat istorija
+                # + opciona napomena
+                full_context = chat_context
+                if extra_note.strip():
+                    full_context += (
+                        f"\nDodatna napomena"
+                        f" advokata:\n"
+                        f"{extra_note}\n")
+
+                # Detektuj sud na osnovu
+                # chat konteksta
                 court_name, is_appellate = \
                     detect_court(
-                        case_desc, sub_type)
+                        full_context, sub_type)
 
                 # Dohvati tekst dokumenata
                 docs_text = ""
@@ -4864,14 +4874,16 @@ def tab_submissions(case_id, user):
                         pass
 
                 # Dohvati pravne izvore
+                # na osnovu chat konteksta
                 law_results = search_laws(
-                    case_desc, 8)
-                law_ctx = format_results(
-                    law_results) if law_results else ""
+                    full_context[:500], 8)
+                law_ctx = (
+                    format_results(law_results)
+                    if law_results else "")
 
-                # Generiši
+                # Generiši podnesak
                 content, _ = generate_submission(
-                    sub_type, case_desc,
+                    sub_type, full_context,
                     docs_text, law_ctx,
                     court_name, is_appellate,
                     case_number,

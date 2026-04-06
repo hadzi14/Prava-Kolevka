@@ -4776,15 +4776,38 @@ def tab_submissions(case_id, user):
                 placeholder="npr. P. br. 123/24",
                 key=f"sub_casenum_{case_id}")
 
-        case_desc = st.text_area(
-            "Opis predmeta i relevantnih činjenica",
-            height=150,
-            placeholder=(
-                "Opišite predmet: stranke, "
-                "šta se desilo, šta tražite..."),
-            key=f"sub_desc_{case_id}")
+               # Dohvati istoriju chata kao kontekst
+        messages = get_case_messages(case_id)
+        chat_context = ""
+        if messages:
+            for m in messages:
+                role_label = (
+                    "Advokat" if m["role"] == "user"
+                    else "AI")
+                chat_context += (
+                    f"{role_label}: "
+                    f"{m['content']}\n\n")
+            st.info(
+                f"AI će koristiti {len(messages)}"
+                f" poruka iz ovog predmeta"
+                f" za generisanje podneska.")
+        else:
+            st.warning(
+                "Nema poruka u ovom predmetu. "
+                "Prvo postavite pitanja AI-u "
+                "o predmetu pa zatim generišite "
+                "podnesak.")
 
-        # Prikaz dokumenta predmeta
+        # Opcioni dodatni komentar
+        extra_note = st.text_area(
+            "Dodatna napomena (opciono)",
+            height=80,
+            placeholder=(
+                "npr. Naglasi rok za žalbu, "
+                "ili specifičan zahtev..."),
+            key=f"sub_extra_{case_id}")
+
+        # Dokumenti predmeta
         case_docs = get_case_documents(case_id)
         use_docs = False
         if case_docs:

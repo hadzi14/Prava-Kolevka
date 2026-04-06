@@ -1417,40 +1417,7 @@ def filter_irrelevant_sources(results, areas):
         reverse=True)
     return filtered
 
-def search_laws(query, max_results=15):
-    q = query.lower()
-    stop = {
-        'je', 'su', 'da', 'li', 'se', 'na', 'u', 'i',
-        'za', 'od', 'sa', 'po', 'ne', 'ni', 'sto', 'sta',
-        'kako', 'koji', 'koja', 'koje', 'ko', 'ako', 'ali',
-        'ili', 'kad', 'gde', 'iz', 'do', 'bi', 'moze',
-        'mora', 'treba', 'prema', 'biti', 'bude', 'sam',
-        'jedan', 'neki', 'sve', 'clan', 'stav', 'zakon',
-        'pravo', 'pravni', 'molim', 'pitanje'}
-    words = re.findall(r'[a-zA-ZčćžšđČĆŽŠĐ]+', q)
-    kws = [w for w in words
-           if len(w) > 2 and w not in stop]
-
-    am = re.search(
-        r'(?:član|članu|člana|neni)'
-        r'\s*[:\s]*(\d+[a-zA-Z]?)', q)
-    t_art = am.group(1) if am else None
-    t_laws = detect_target_law(query)
-    t_areas = detect_legal_area(query)
-    rd = {}
-
-    # Da li je pitanje o cilju/oblasti/definicijama?
-    is_scope_q = any(
-        sk in q for sk in SCOPE_KEYWORDS)
-
-    # Nekompatibilni termini za detekovanu oblast
-    irr_terms = []
-    if t_areas:
-        for area in t_areas[:2]:
-            irr_terms.extend(
-                IRRELEVANT_PATTERNS.get(area, []))
-
-        def score_article(art, law, base):
+def score_article(art, law, base):
         """Računa score za članak.
         Koristi DOMAIN_BOOST za sve oblasti."""
         content_l = art.get(
@@ -1551,6 +1518,39 @@ def search_laws(query, max_results=15):
                         * db["peripheral_penalty"])
 
         return score
+
+def search_laws(query, max_results=15):
+    q = query.lower()
+    stop = {
+        'je', 'su', 'da', 'li', 'se', 'na', 'u', 'i',
+        'za', 'od', 'sa', 'po', 'ne', 'ni', 'sto', 'sta',
+        'kako', 'koji', 'koja', 'koje', 'ko', 'ako', 'ali',
+        'ili', 'kad', 'gde', 'iz', 'do', 'bi', 'moze',
+        'mora', 'treba', 'prema', 'biti', 'bude', 'sam',
+        'jedan', 'neki', 'sve', 'clan', 'stav', 'zakon',
+        'pravo', 'pravni', 'molim', 'pitanje'}
+    words = re.findall(r'[a-zA-ZčćžšđČĆŽŠĐ]+', q)
+    kws = [w for w in words
+           if len(w) > 2 and w not in stop]
+
+    am = re.search(
+        r'(?:član|članu|člana|neni)'
+        r'\s*[:\s]*(\d+[a-zA-Z]?)', q)
+    t_art = am.group(1) if am else None
+    t_laws = detect_target_law(query)
+    t_areas = detect_legal_area(query)
+    rd = {}
+
+    # Da li je pitanje o cilju/oblasti/definicijama?
+    is_scope_q = any(
+        sk in q for sk in SCOPE_KEYWORDS)
+
+    # Nekompatibilni termini za detekovanu oblast
+    irr_terms = []
+    if t_areas:
+        for area in t_areas[:2]:
+            irr_terms.extend(
+                IRRELEVANT_PATTERNS.get(area, []))
 
     def add(r, score):
         k = (f"{r.get('name_sr', '')}|"

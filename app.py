@@ -316,8 +316,7 @@ SCOPE_KEYWORDS = [
     "svrha", "opšte odredbe", "opste odredbe",
     "osnovna načela", "osnovna nacela",
 ]
- 
-IRRELEVANT_PATTERNS = {
+ IRRELEVANT_PATTERNS = {
     "Radno pravo": [
         "prodaja po uzorku", "predugovor",
         "punomoćje", "punomocje", "oglas",
@@ -343,11 +342,9 @@ IRRELEVANT_PATTERNS = {
         "radno vreme", "prekovremeni",
     ],
 }
-
 # ═══════════════════════════════════════════════════════════════
 #  DOMENSKI BOOST — centralni termini po oblasti
 # ═══════════════════════════════════════════════════════════════
-
 DOMAIN_BOOST = {
     "Radno pravo": {
         "central": [
@@ -566,8 +563,7 @@ DOMAIN_BOOST = {
             "licenca",
             "javni interes",
             "diskreciona ocena",
-            "poništaj akta",
-            "ponitaj akta",
+            "poništaj akta", "ponitaj akta",
             "organ uprave",
         ],
         "peripheral": [
@@ -617,7 +613,7 @@ DOMAIN_BOOST = {
             "hipoteka",
             "pravo preče kupovine",
             "pravo prece kupovine",
-            "uknjižba", "uknjizba",
+            "uknjižba", "uknjizbа",
         ],
         "peripheral": [
             "opšte odredbe", "opste odredbe",
@@ -648,9 +644,6 @@ DOMAIN_BOOST = {
         "peripheral_penalty": 10,
     },
 }
-
-SHORTNAME_MAP = {
-
 SHORTNAME_MAP = {
     "kz": ["Krivični zakonik"],
     "zkp": ["Zakonik o krivičnom postupku",
@@ -660,14 +653,15 @@ SHORTNAME_MAP = {
     "zor": ["Zakon o radu"],
     "pz": ["Porodični zakon"],
     "zup": ["Zakon o upravnom postupku"],
-    "ustav": ["Ustav Kosova", "Ustav Republike Kosovo"],
+    "ustav": ["Ustav Kosova",
+              "Ustav Republike Kosovo"],
     "ustav kosova": ["Ustav Kosova"],
 }
-
 SERBIA_MARKERS = [
     "zakon republike srbije", "zakon rs",
     "službeni glasnik rs", "republika srbija",
-    "po srpskom pravu", "u srbiji", "zakon srbije",
+    "po srpskom pravu", "u srbiji",
+    "zakon srbije",
 ]
 
 

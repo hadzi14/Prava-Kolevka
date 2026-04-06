@@ -337,12 +337,19 @@ AREA_KEY_LAWS = {
         "laws": ["ustav", "ustav kosova"],
         "label": "Ustav Kosova",
         "incompatible": [],
-         "Privredno pravo": {
+    },
+    "Privredno pravo": {
         "laws": [
             "zakon o privrednim društvima",
             "zakon o preduzecima",
             "zakon o privrednim drustvima",
             "zpd",
+        ],
+        "label": "Zakon o privrednim društvima",
+        "incompatible": [
+            "Krivično pravo",
+            "Krivični postupak",
+            "Porodično pravo",
         ],
     },
 }
@@ -688,7 +695,8 @@ DOMAIN_BOOST = {
         "central_score": 20,
         "peripheral_penalty": 15,
         "cap": 3,
-         "Privredno pravo": {
+    },
+    "Privredno pravo": {
         "central": [
             "privredno društvo",
             "osnivanje društva",
@@ -714,7 +722,6 @@ DOMAIN_BOOST = {
         "central_score": 20,
         "peripheral_penalty": 15,
         "cap": 3,
-    },
     },
 }
 SHORTNAME_MAP = {

@@ -2220,18 +2220,18 @@ def query_ai(question, case_doc_vs=None):
 
         ctx = format_results(results)
 
-        doc_ctx = "(Nema dokumenata.)"
+               doc_ctx = "(Nema dokumenata.)"
         if case_doc_vs:
-        try:
-            ds = case_doc_vs.as_retriever(
-                search_kwargs={"k": 4}).invoke(
+            try:
+                ds = case_doc_vs.as_retriever(
+                    search_kwargs={"k": 4}).invoke(
                     question)
-            if ds:
-                doc_ctx = "\n---\n".join(
-                    f"[{d.metadata.get('source', '?')}]"
-                    f"\n{d.page_content}" for d in ds)
-        except Exception:
-            pass
+                if ds:
+                    doc_ctx = "\n---\n".join(
+                        f"[{d.metadata.get('source', '?')}]"
+                        f"\n{d.page_content}" for d in ds)
+            except Exception:
+                pass
 
     # Detektovana oblast za AI
     area_str = (

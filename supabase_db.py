@@ -1,8 +1,8 @@
 """
 Supabase helper za Prava Kolevka.
 """
-import os
 import re
+import os
 import streamlit as st
 from supabase import create_client
 def get_secret(key, default=""):

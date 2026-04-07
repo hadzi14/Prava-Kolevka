@@ -4386,37 +4386,71 @@ def admin_users():
                 value="Kolevka2024!",
                 key="nu_pw")
             if st.form_submit_button("Kreiraj"):
-                if not nn or not ne or not npw:
-                    st.error("Popunite.")
-                else:
-                    try:
-                        ph, salt = \
-                            create_password_hash(npw)
-                        se = (date.today()
-                              + timedelta(
-                                  days=nd)).isoformat()
-                        with get_db() as conn:
-                            conn.execute(
-                                "INSERT INTO users"
-                                "(email,"
-                                "password_hash,"
-                                "salt,full_name,"
-                                "role,plan,"
-                                "is_active,"
-                                "subscription_start,"
-                                "subscription_end)"
-                                "VALUES(?,?,?,?,"
-                                "'user',?,1,?,?)",
-                                (ne.lower().strip(),
-                                 ph, salt, nn, npl,
-                                 date.today()
-                                 .isoformat(), se))
-                        st.success(f"Kreiran: {nn}")
-                        st.rerun()
-                    except sqlite3.IntegrityError:
-                        st.error("Email postoji.")
-                    except Exception as e:
-                        st.error(f"{e}")
+    if not nn or not ne or not npw:
+        st.error("Popunite.")
+    else:
+        try:
+            ph, salt = \
+                create_password_hash(npw)
+            se = (date.today()
+                  + timedelta(
+                      days=nd)).isoformat()
+            ss = date.today().isoformat()
+            
+            user_data = {
+                "email": ne.lower().strip(),
+                "password_hash": ph,
+                "salt": salt,
+                "full_name": nn,
+                "role": "user",
+                "plan": npl,
+                "is_active": True,
+                "subscription_start": ss,
+                "subscription_end": se,
+                "auto_suspended": False,
+                "suspended_reason": "",
+                "notes": ""
+            }
+            
+            # Pokušaj Supabase prvo
+            created_id = None
+            if SUPABASE_READY:
+                try:
+                    created_id = sb_create_user(
+                        user_data)
+                    if created_id:
+                        st.success(
+                            f"Kreiran u Supabase:"
+                            f" {nn}")
+                except Exception as e_sb:
+                    st.warning(
+                        f"Supabase greška: {e_sb}"
+                        f" — čuvam lokalno.")
+            
+            # Uvek sačuvaj i u SQLite
+            with get_db() as conn:
+                conn.execute(
+                    "INSERT OR IGNORE INTO users"
+                    " (email, password_hash,"
+                    " salt, full_name,"
+                    " role, plan, is_active,"
+                    " subscription_start,"
+                    " subscription_end)"
+                    " VALUES(?,?,?,?,"
+                    " 'user',?,1,?,?)",
+                    (ne.lower().strip(),
+                     ph, salt, nn, npl,
+                     ss, se))
+            
+            if not created_id:
+                st.success(
+                    f"Kreiran lokalno: {nn}")
+            st.rerun()
+            
+        except sqlite3.IntegrityError:
+            st.error("Email postoji.")
+        except Exception as e:
+            st.error(f"{e}")
     try:
         with get_db() as conn:
             users = conn.execute(

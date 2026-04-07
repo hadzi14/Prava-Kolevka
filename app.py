@@ -4386,8 +4386,8 @@ def admin_users():
                 value="Kolevka2024!",
                 key="nu_pw")
             if st.form_submit_button("Kreiraj"):
-            if not nn or not ne or not npw:
-        st.error("Popunite.")
+                if not nn or not ne or not npw:
+                    st.error("Popunite.")
     else:
         try:
             ph, salt = \

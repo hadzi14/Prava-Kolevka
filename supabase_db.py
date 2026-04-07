@@ -627,5 +627,3 @@ def sb_log_action(user_id, action, details=""):
         return True
     except Exception:
         return False
-        
-    return r.data or []

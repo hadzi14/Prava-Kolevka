@@ -425,7 +425,8 @@ def sb_get_user_by_email(email):
 
 def sb_create_user(user_data):
     try:
-        r = supabase.table("users")\
+        sb = get_sb()
+        r = sb.table("users")\
             .insert(user_data)\
             .execute()
         if r.data:

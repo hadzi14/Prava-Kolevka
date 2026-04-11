@@ -363,7 +363,6 @@ def sb_find_parent_law(title_hint):
         "name_sr", f"%{search_value}%"
     ).limit(10).execute()
     return r.data or []
-
 # ═══════════════════════════════════════════════
 #  USERS
 # ═══════════════════════════════════════════════

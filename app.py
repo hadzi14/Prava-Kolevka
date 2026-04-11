@@ -4583,16 +4583,47 @@ def admin_users():
                             (ne, u["id"]))
                     st.rerun()
             with c2:
-                if u["is_active"]:
+                                if u["is_active"]:
                     if st.button(
                             "Suspenduj",
                             key=f"s_{u['id']}"):
+                        if SUPABASE_READY:
+                            try:
+                                sb_update_user(
+                                    u["id"],
+                                    {"is_active": 0})
+                            except Exception:
+                                pass
                         with get_db() as conn:
                             conn.execute(
                                 "UPDATE users"
                                 " SET is_active=0"
                                 " WHERE id=?",
                                 (u["id"],))
+                        st.rerun()
+                else:
+                    if st.button(
+                            "Aktiviraj",
+                            key=f"a_{u['id']}"):
+                        ne = (date.today()
+                              + timedelta(
+                                  days=30)
+                              ).isoformat()
+                        if SUPABASE_READY:
+                            try:
+                                sb_update_user(
+                                    u["id"],
+                                    {"is_active": 1,
+                                     "subscription_end": ne})
+                            except Exception:
+                                pass
+                        with get_db() as conn:
+                            conn.execute(
+                                "UPDATE users"
+                                " SET is_active=1,"
+                                "subscription_end=?"
+                                " WHERE id=?",
+                                (ne, u["id"]))
                         st.rerun()
                 else:
                     if st.button(

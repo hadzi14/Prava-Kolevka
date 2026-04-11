@@ -4417,12 +4417,15 @@ def admin_users():
                                     "full_name": nn,
                                     "role": "user",
                                     "plan": npl,
-                                    "is_active": True,
+                                    "is_active": 1,
                                     "subscription_start": ss,
                                     "subscription_end": se,
-                                    "auto_suspended": False,
+                                    "auto_suspended": 0,
                                     "suspended_reason": "",
                                     "notes": "",
+                                    "signature_city": "",
+                                    "signature_name": "",
+                                    "office_name": "",
                                 }
                                 created_id = sb_create_user(
                                     sb_user_data)

@@ -168,11 +168,19 @@ def sb_get_law_basic(law_id):
     """Vraća osnovne podatke zakona."""
     sb = get_sb()
     r = sb.table("laws").select(
-        "id, name_sr, name_al, short_name,"
+        "id, name_sr, short_name,"
         " law_number, area, hierarchy_level,"
         " gazette_info"
     ).eq("id", law_id).execute()
-    return r.data[0] if r.data else None
+    if not r.data:
+        return None
+    law = r.data[0]
+    # name_al može ne postojati — defaultuj
+    if "name_al" not in law:
+        law["name_al"] = ""
+    if "short_name" not in law:
+        law["short_name"] = ""
+    return law
 
 def sb_get_all_articles_with_laws():
     """Vraća sve članke sa podacima zakona

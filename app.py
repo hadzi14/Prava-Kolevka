@@ -4448,28 +4448,11 @@ def admin_users():
                                   days=nd)).isoformat()
                         ss = date.today().isoformat()
 
-                        user_data = {
-                            "email": ne.lower().strip(),
-                            "password_hash": ph,
-                            "salt": salt,
-                            "full_name": nn,
-                            "role": "user",
-                            "plan": npl,
-                            "is_active": True,
-                            "subscription_start": ss,
-                            "subscription_end": se,
-                            "auto_suspended": False,
-                            "suspended_reason": "",
-                            "notes": ""
-                        }
-
-                                                # Pokušaj Supabase prvo
+                        # Pokušaj Supabase prvo
                         created_id = None
                         sb_error = None
                         if SUPABASE_READY:
                             try:
-                                # Supabase prima bool kao bool,
-                                # int8 id se generiše automatski
                                 sb_user_data = {
                                     "email": ne.lower().strip(),
                                     "password_hash": ph,
@@ -4531,10 +4514,12 @@ def admin_users():
                             st.success(
                                 f"Kreiran lokalno: {nn}")
                         st.rerun()
+
                     except sqlite3.IntegrityError:
                         st.error("Email postoji.")
                     except Exception as e:
                         st.error(f"{e}")
+
     try:
         with get_db() as conn:
             users = conn.execute(
@@ -4544,6 +4529,7 @@ def admin_users():
                 "full_name").fetchall()
     except Exception:
         return
+
     for u in users:
         u = dict(u)
         pl = PLANS.get(
@@ -4571,16 +4557,24 @@ def admin_users():
                         if u.get(
                             "subscription_end")
                         else date.today())
-                    ne = (max(curr, date.today())
-                          + timedelta(
-                              days=ext)).isoformat()
+                    new_end = (max(curr, date.today())
+                               + timedelta(
+                                   days=ext)).isoformat()
+                    if SUPABASE_READY:
+                        try:
+                            sb_update_user(
+                                u["id"],
+                                {"is_active": 1,
+                                 "subscription_end": new_end})
+                        except Exception:
+                            pass
                     with get_db() as conn:
                         conn.execute(
                             "UPDATE users SET"
                             " subscription_end=?,"
-                            "is_active=1"
+                            " is_active=1"
                             " WHERE id=?",
-                            (ne, u["id"]))
+                            (new_end, u["id"]))
                     st.rerun()
             with c2:
                 if u["is_active"]:
@@ -4605,41 +4599,25 @@ def admin_users():
                     if st.button(
                             "Aktiviraj",
                             key=f"a_{u['id']}"):
-                        ne = (date.today()
-                              + timedelta(
-                                  days=30)
-                              ).isoformat()
+                        new_end = (date.today()
+                                   + timedelta(
+                                       days=30)
+                                   ).isoformat()
                         if SUPABASE_READY:
                             try:
                                 sb_update_user(
                                     u["id"],
                                     {"is_active": 1,
-                                     "subscription_end": ne})
+                                     "subscription_end": new_end})
                             except Exception:
                                 pass
                         with get_db() as conn:
                             conn.execute(
                                 "UPDATE users"
                                 " SET is_active=1,"
-                                "subscription_end=?"
+                                " subscription_end=?"
                                 " WHERE id=?",
-                                (ne, u["id"]))
-                        st.rerun()
-                else:
-                    if st.button(
-                            "Aktiviraj",
-                            key=f"a_{u['id']}"):
-                        ne = (date.today()
-                            + timedelta(
-                                days=30)
-                            ).isoformat()
-                        with get_db() as conn:
-                            conn.execute(
-                                "UPDATE users"
-                                " SET is_active=1,"
-                                "subscription_end=?"
-                                " WHERE id=?",
-                                (ne, u["id"]))
+                                (new_end, u["id"]))
                         st.rerun()
 
 

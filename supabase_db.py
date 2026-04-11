@@ -5,14 +5,12 @@ import re
 import os
 import streamlit as st
 from supabase import create_client
-
 def get_secret(key, default=""):
     try:
         return st.secrets[key]
     except Exception:
         return os.environ.get(key, default)
 _client = None
-
 def get_sb():
     global _client
     if _client is None:
@@ -31,14 +29,12 @@ def sb_insert_law(data):
     sb = get_sb()
     r = sb.table("laws").insert(data).execute()
     return r.data[0] if r.data else None
-
 def sb_get_law(law_id):
     """Vraća zakon po ID-u."""
     sb = get_sb()
     r = sb.table("laws").select("*").eq(
         "id", law_id).execute()
     return r.data[0] if r.data else None
-
 def sb_get_all_laws(active_only=True):
     """Vraća sve zakone."""
     sb = get_sb()
@@ -48,14 +44,12 @@ def sb_get_all_laws(active_only=True):
     r = q.order("hierarchy_level").order(
         "name_sr").execute()
     return r.data or []
-
 def sb_update_law(law_id, data):
     """Ažurira zakon."""
     sb = get_sb()
     r = sb.table("laws").update(data).eq(
         "id", law_id).execute()
     return r.data[0] if r.data else None
-
 def sb_delete_law(law_id):
     """Briše zakon i članke (CASCADE)."""
     sb = get_sb()
@@ -68,7 +62,6 @@ def sb_insert_article(data):
     r = sb.table("law_articles").insert(
         data).execute()
     return r.data[0] if r.data else None
-
 def sb_insert_articles_bulk(articles):
     """Insert više članova odjednom."""
     if not articles:
@@ -77,7 +70,6 @@ def sb_insert_articles_bulk(articles):
     r = sb.table("law_articles").insert(
         articles).execute()
     return r.data or []
-
 def sb_get_articles(law_id):
     """Vraća članke zakona po law_id."""
     sb = get_sb()
@@ -85,13 +77,11 @@ def sb_get_articles(law_id):
         "law_id", law_id).order(
         "order_index").execute()
     return r.data or []
-
 def sb_delete_articles(law_id):
     """Briše sve članke zakona."""
     sb = get_sb()
     sb.table("law_articles").delete().eq(
         "law_id", law_id).execute()
-
 def sb_count_articles():
     """Vraća ukupan broj članova."""
     sb = get_sb()
@@ -119,7 +109,6 @@ def sb_save_law_with_articles(law_data, articles):
     if bulk:
         sb_insert_articles_bulk(bulk)
     return law_id, len(bulk)
-
 def sb_get_law_with_articles(law_id):
     """Vraća zakon sa člancima."""
     law = sb_get_law(law_id)
@@ -127,7 +116,6 @@ def sb_get_law_with_articles(law_id):
         return None, []
     arts = sb_get_articles(law_id)
     return law, arts
-
 def sb_get_laws_summary():
     """Vraća listu zakona sa brojem članova."""
     sb = get_sb()
@@ -140,7 +128,6 @@ def sb_get_laws_summary():
         law["num_articles"] = arts.count or 0
         result.append(law)
     return result
-
 def sb_search_articles(keyword):
     """Pretražuje članke po ključnoj reči
     u content ili title."""
@@ -153,7 +140,6 @@ def sb_search_articles(keyword):
         f"title.ilike.%{keyword}%"
     ).limit(20).execute()
     return r.data or []
-
 def sb_search_articles_by_number(art_num):
     """Pretražuje članke po broju člana."""
     sb = get_sb()
@@ -163,7 +149,6 @@ def sb_search_articles_by_number(art_num):
     ).eq("article_number", art_num
     ).limit(20).execute()
     return r.data or []
-
 def sb_get_law_basic(law_id):
     """Vraća osnovne podatke zakona."""
     sb = get_sb()
@@ -175,13 +160,10 @@ def sb_get_law_basic(law_id):
     if not r.data:
         return None
     law = r.data[0]
-    # name_al može ne postojati — defaultuj
-    if "name_al" not in law:
-        law["name_al"] = ""
-    if "short_name" not in law:
-        law["short_name"] = ""
+    # Defaultuj opciona polja ako ne postoje
+    law.setdefault("name_al", "")
+    law.setdefault("short_name", "")
     return law
-
 def sb_get_all_articles_with_laws():
     """Vraća sve članke sa podacima zakona
     za vector store. Jedan poziv umesto N."""
@@ -194,7 +176,6 @@ def sb_get_all_articles_with_laws():
         return []
     law_map = {l["id"]: l for l in laws}
     law_ids = list(law_map.keys())
-    # Jedan poziv za sve članke svih zakona
     arts = sb.table("law_articles").select(
         "law_id, article_number, title, content"
     ).in_("law_id", law_ids).order(
@@ -221,7 +202,6 @@ def sb_get_all_articles_with_laws():
                 law.get("hierarchy_level", 3),
         })
     return all_rows
-
 def sb_find_laws_by_name(name):
     """Traži zakone po nazivu."""
     sb = get_sb()
@@ -232,7 +212,6 @@ def sb_find_laws_by_name(name):
         "name_sr", f"%{name}%"
     ).execute()
     return r.data or []
-
 def sb_test_connection():
     """Testira konekciju i vraća status."""
     try:
@@ -251,7 +230,6 @@ def sb_test_connection():
                 for l in (laws.data or [])[:5]
             ]
         }
-        # Test: dohvati čl. 1 za law_id=3
         test_art = sb.table("law_articles").select(
             "article_number, title, content"
         ).eq("law_id", 3).eq(
@@ -271,14 +249,12 @@ def sb_test_connection():
             "connected": False,
             "error": str(e)
         }
-
 def sb_search_articles_multi(keywords, law_ids=None):
     """Pretražuje članke po više ključnih reči.
     Jedan Supabase poziv umesto N."""
     if not keywords:
         return []
     sb = get_sb()
-    # Spoji sve ključne reči u jedan OR uslov
     or_parts = []
     for kw in keywords[:8]:
         kw_safe = kw.replace("%", "").replace(
@@ -297,7 +273,6 @@ def sb_search_articles_multi(keywords, law_ids=None):
         q = q.in_("law_id", law_ids)
     r = q.or_(",".join(or_parts)).limit(
         50).execute()
-    # Računaj _match_count u Pythonu
     results = []
     for art in (r.data or []):
         content_l = (
@@ -317,10 +292,8 @@ def sb_search_articles_multi(keywords, law_ids=None):
             or kw.lower() in title_l]
         results.append(art)
     return results
-
 def sb_get_first_articles(law_id, limit=5):
-    """Vraća prvih N članova zakona
-    (za pitanja o cilju, oblasti primene itd.)."""
+    """Vraća prvih N članova zakona."""
     sb = get_sb()
     r = sb.table("law_articles").select(
         "id, law_id, article_number,"
@@ -328,7 +301,6 @@ def sb_get_first_articles(law_id, limit=5):
     ).eq("law_id", law_id).order(
         "order_index").limit(limit).execute()
     return r.data or []
-
 def sb_get_law_ids_by_area(area):
     """Vraća ID-jeve zakona iz određene oblasti."""
     sb = get_sb()
@@ -336,15 +308,12 @@ def sb_get_law_ids_by_area(area):
         "is_active", True).eq(
         "area", area).execute()
     return [l["id"] for l in (r.data or [])]
-
 def sb_find_parent_law(title_hint):
     """Traži mogući osnovni zakon po nazivu."""
     if not title_hint:
         return []
     sb = get_sb()
     hint = title_hint.strip()
-    # Osnovno čišćenje čestih fraza
-    # kod novela/podzakonskih akata
     lowered = hint.lower()
     replacements = [
         "zakon o izmenama i dopunama",
@@ -357,13 +326,11 @@ def sb_find_parent_law(title_hint):
     for phrase in replacements:
         lowered = lowered.replace(phrase, "")
     cleaned_hint = lowered.strip()
-    # Ako je posle čišćenja ostalo premalo teksta,
-    # koristi originalni hint
     search_value = (
         cleaned_hint
         if len(cleaned_hint) >= 3
         else hint)
-        r = sb.table("laws").select(
+    r = sb.table("laws").select(
         "id, name_sr, short_name, law_number, area"
     ).eq("is_active", True).eq(
         "document_type", "law"
@@ -386,7 +353,6 @@ def sb_get_user_by_email(email):
         return None
     except Exception:
         return None
-
 def sb_create_user(user_data):
     try:
         sb = get_sb()
@@ -398,7 +364,6 @@ def sb_create_user(user_data):
         return None
     except Exception:
         return None
-
 def sb_update_user(user_id, updates):
     try:
         sb = get_sb()
@@ -409,7 +374,6 @@ def sb_update_user(user_id, updates):
         return True
     except Exception:
         return False
-
 def sb_get_all_users():
     try:
         sb = get_sb()
@@ -437,7 +401,6 @@ def sb_create_case(owner_id, title):
         return None
     except Exception:
         return None
-
 def sb_get_user_cases(owner_id):
     try:
         sb = get_sb()
@@ -450,7 +413,6 @@ def sb_get_user_cases(owner_id):
         return r.data or []
     except Exception:
         return []
-
 def sb_delete_case(case_id, owner_id):
     try:
         sb = get_sb()
@@ -488,7 +450,6 @@ def sb_get_case_messages(case_id):
         return r.data or []
     except Exception:
         return []
-
 def sb_save_case_message(case_id, role,
                           content,
                           sources_html="",
@@ -526,7 +487,6 @@ def sb_add_case_document(case_id, filename,
         return None
     except Exception:
         return None
-
 def sb_get_case_documents(case_id):
     try:
         sb = get_sb()
@@ -540,7 +500,6 @@ def sb_get_case_documents(case_id):
         return r.data or []
     except Exception:
         return []
-
 def sb_get_document_text(doc_id):
     try:
         sb = get_sb()
@@ -553,7 +512,6 @@ def sb_get_document_text(doc_id):
         return ""
     except Exception:
         return ""
-
 def sb_delete_case_document(doc_id, case_id):
     try:
         sb = get_sb()
@@ -589,7 +547,6 @@ def sb_save_submission(case_id, user_id,
         return None
     except Exception:
         return None
-
 def sb_get_case_submissions(case_id):
     try:
         sb = get_sb()
@@ -601,7 +558,6 @@ def sb_get_case_submissions(case_id):
         return r.data or []
     except Exception:
         return []
-
 def sb_delete_submission(sub_id, user_id):
     try:
         sb = get_sb()
@@ -637,7 +593,6 @@ def sb_save_payment(user_id, amount,
         return True
     except Exception:
         return False
-
 def sb_get_payments(month_start=None):
     try:
         sb = get_sb()
@@ -650,7 +605,6 @@ def sb_get_payments(month_start=None):
         return r.data or []
     except Exception:
         return []
-
 def sb_log_action(user_id, action, details=""):
     try:
         sb = get_sb()

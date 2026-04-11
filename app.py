@@ -2336,7 +2336,7 @@ def query_ai(question, case_doc_vs=None):
             model="gpt-4o-mini",
             api_key=OPENAI_API_KEY,
             temperature=0.05, max_tokens=4096)
-                ans = llm.invoke(
+            ans = llm.invoke(
             [HumanMessage(content=prompt)]).content
         ans = verify_citations(ans, results)
 

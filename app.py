@@ -1580,35 +1580,28 @@ def detect_jurisdiction_issue(q):
 def check_key_law_present(areas, results):
     """Proverava da li ključni zakon za
     detektovanu oblast postoji u rezultatima.
-    VAŽNO: proverava samo primarnu oblast,
-    ne sme da prijavljuje zakone iz
-    nekompatibilnih oblasti."""
+    Koristi SAMO name_sr, ne short_name."""
     if not areas or not results:
         return False, []
-
-    # Uzimamo SAMO primarnu oblast
     primary_area = areas[0]
     akl = AREA_KEY_LAWS.get(primary_area)
     if not akl:
-        return True, []  # Nema ključnog zakona za ovu oblast — OK
-
-    # Proveri da li je ključni zakon prisutan
+        return True, []
     found = False
     for r in results:
+        # Koristi SAMO name_sr, ne short_name
         rname = (r.get('name_sr', '') or '').lower()
-        rshort = (r.get('short_name', '') or '').lower()
         for kl in akl["laws"]:
-            if kl in rname or kl in rshort:
+            if kl in rname:
                 found = True
                 break
         if found:
             break
-
     if found:
         return True, []
     else:
         return False, [akl["label"]]
-
+     
 def filter_irrelevant_sources(results, areas):
     """Penalizuje izvore iz nekompatibilne
     oblasti prava."""

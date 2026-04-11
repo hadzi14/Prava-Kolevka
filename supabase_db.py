@@ -363,14 +363,12 @@ def sb_find_parent_law(title_hint):
         cleaned_hint
         if len(cleaned_hint) >= 3
         else hint)
-    r = sb.table("laws").select(
+        r = sb.table("laws").select(
         "id, name_sr, short_name, law_number, area"
     ).eq("is_active", True).eq(
         "document_type", "law"
-    ).or_(
-        f"name_sr.ilike.%{search_value}%,"
-        f"short_name.ilike.%{search_value}%,"
-        f"law_number.ilike.%{search_value}%"
+    ).ilike(
+        "name_sr", f"%{search_value}%"
     ).limit(10).execute()
     return r.data or []
 # ═══════════════════════════════════════════════

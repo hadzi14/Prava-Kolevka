@@ -2502,12 +2502,29 @@ def build_case_doc_vs(case_id):
     if not OPENAI_API_KEY:
         return None
     try:
-        with get_db() as conn:
-            docs = conn.execute(
-                "SELECT filename,text_content"
-                " FROM case_documents"
-                " WHERE case_id=?",
-                (case_id,)).fetchall()
+        # Pokušaj Supabase prvo
+        docs = []
+        if SUPABASE_READY:
+            try:
+                raw = sb_get_case_documents(case_id)
+                for d in (raw or []):
+                    txt = sb_get_document_text(d["id"])
+                    if txt:
+                        docs.append({
+                            "filename": d["filename"],
+                            "text_content": txt,
+                        })
+            except Exception:
+                pass
+        # Fallback SQLite
+        if not docs:
+            with get_db() as conn:
+                rows = conn.execute(
+                    "SELECT filename,text_content"
+                    " FROM case_documents"
+                    " WHERE case_id=?",
+                    (case_id,)).fetchall()
+                docs = [dict(r) for r in rows]
         if not docs:
             return None
         sp = RecursiveCharacterTextSplitter(

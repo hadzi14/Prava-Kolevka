@@ -1540,11 +1540,33 @@ def detect_legal_area(q):
     return [a for a, _ in det[:2]]
 
 def detect_target_law(q):
-    q = q.lower()
+    """Detektuje ciljni zakon iz pitanja.
+    Koristi SAMO pune nazive, bez skraćenica."""
+    q_lower = q.lower()
     t = []
-    for sn, fns in SHORTNAME_MAP.items():
-        if sn in q:
-            t.extend(fns)
+    # Direktni pomeni punih naziva
+    law_name_map = {
+        "zakon o radu": "Zakon o radu",
+        "zakon o obligacionim odnosima": "Zakon o obligacionim odnosima",
+        "zakonik o krivičnom postupku": "Zakonik o krivičnom postupku",
+        "zakonik o krivicnom postupku": "Zakonik o krivičnom postupku",
+        "zakon o krivičnom postupku": "Zakonik o krivičnom postupku",
+        "zakon o krivicnom postupku": "Zakonik o krivičnom postupku",
+        "krivični zakonik": "Krivični zakonik",
+        "krivicni zakonik": "Krivični zakonik",
+        "zakon o parničnom postupku": "Zakon o parničnom postupku",
+        "zakon o parnicnom postupku": "Zakon o parničnom postupku",
+        "porodični zakon": "Porodični zakon",
+        "porodicni zakon": "Porodični zakon",
+        "zakon o upravnom postupku": "Zakon o upravnom postupku",
+        "ustav kosova": "Ustav Kosova",
+        "ustav republike kosovo": "Ustav Kosova",
+        "zakon o privrednim društvima": "Zakon o privrednim društvima",
+        "zakon o privrednim drustvima": "Zakon o privrednim društvima",
+    }
+    for key, full_name in law_name_map.items():
+        if key in q_lower:
+            t.append(full_name)
     return list(set(t))
 
 

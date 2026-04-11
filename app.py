@@ -2690,6 +2690,36 @@ COURT_DETECTION_PROMPT = (
 
 def get_user_signature(user_id):
     """Dohvata sačuvane podatke o potpisu korisnika."""
+    # Prvo pokušaj iz session_state (najbrže)
+    cu = st.session_state.get("current_user", {})
+    if cu and cu.get("id") == user_id:
+        city = cu.get("signature_city", "")
+        name = cu.get("signature_name", "")
+        office = cu.get("office_name", "")
+        if name or city or office:
+            return {
+                "city": city or "",
+                "name": name or "",
+                "office": office or "",
+            }
+    # Pokušaj Supabase
+    if SUPABASE_READY:
+        try:
+            sb = __import__('supabase_db').get_sb()
+            r = sb.table("users").select(
+                "signature_city, signature_name,"
+                " office_name"
+            ).eq("id", user_id).execute()
+            if r.data:
+                u = r.data[0]
+                return {
+                    "city": u.get("signature_city", "") or "",
+                    "name": u.get("signature_name", "") or "",
+                    "office": u.get("office_name", "") or "",
+                }
+        except Exception:
+            pass
+    # Fallback SQLite
     try:
         with get_db() as conn:
             u = conn.execute(
@@ -2706,9 +2736,22 @@ def get_user_signature(user_id):
         pass
     return {"city": "", "name": "", "office": ""}
 
-
 def save_user_signature(user_id, city, name, office):
     """Čuva podatke o potpisu korisnika."""
+    saved = False
+    # Supabase
+    if SUPABASE_READY:
+        try:
+            sb = __import__('supabase_db').get_sb()
+            sb.table("users").update({
+                "signature_city": city,
+                "signature_name": name,
+                "office_name": office,
+            }).eq("id", user_id).execute()
+            saved = True
+        except Exception:
+            pass
+    # SQLite (uvek kao backup)
     try:
         with get_db() as conn:
             conn.execute(
@@ -2716,10 +2759,10 @@ def save_user_signature(user_id, city, name, office):
                 " signature_name=?, office_name=?"
                 " WHERE id=?",
                 (city, name, office, user_id))
-        return True
+        saved = True
     except Exception:
-        return False
-
+        pass
+    return saved
 
 def detect_court(case_description, submission_type):
     """AI detektuje nadležni sud."""

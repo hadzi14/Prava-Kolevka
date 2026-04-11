@@ -4624,9 +4624,9 @@ def admin_users():
                                 "subscription_end=?"
                                 " WHERE id=?",
                                 (ne, u["id"]))
-                      st.rerun()
+                        st.rerun()
                 else:
-                  if st.button(
+                    if st.button(
                             "Aktiviraj",
                             key=f"a_{u['id']}"):
                         ne = (date.today()

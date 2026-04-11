@@ -4733,7 +4733,7 @@ def admin_settings():
                         st.success("Promenjeno.")
                     else:
                         st.error("Pogresna.")
-                     # ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
 #  KORISNICKI PANEL + MAIN
 # ═══════════════════════════════════════════════════════════════
 
@@ -4905,7 +4905,7 @@ def tab_cases():
         else:
             st.text("Nema dokumenata.")
 
-     # Podnesci — expander unutar predmeta
+    # Podnesci — expander unutar predmeta
     with st.expander(
             "Podnesci predmeta",
             expanded=False):
@@ -5097,7 +5097,7 @@ def tab_submissions(case_id, user):
                 placeholder="npr. P. br. 123/24",
                 key=f"sub_casenum_{case_id}")
 
-               # Dohvati istoriju chata kao kontekst
+        # Dohvati istoriju chata kao kontekst
         messages = get_case_messages(case_id)
         chat_context = ""
         if messages:
@@ -5160,7 +5160,7 @@ def tab_submissions(case_id, user):
                     "AI analizira predmet"
                     " i kreira podnesak..."):
 
-                                # Kontekst = chat istorija
+                # Kontekst = chat istorija
                 # + opciona napomena
                 full_context = chat_context
                 if extra_note.strip():

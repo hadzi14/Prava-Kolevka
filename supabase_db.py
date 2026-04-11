@@ -223,14 +223,13 @@ def sb_get_all_articles_with_laws():
     return all_rows
 
 def sb_find_laws_by_name(name):
-    """Traži zakone po nazivu ili skraćenici."""
+    """Traži zakone po nazivu."""
     sb = get_sb()
     r = sb.table("laws").select(
         "id, name_sr, short_name, law_number,"
         " area, hierarchy_level"
-    ).eq("is_active", True).or_(
-        f"name_sr.ilike.%{name}%,"
-        f"short_name.ilike.%{name}%"
+    ).eq("is_active", True).ilike(
+        "name_sr", f"%{name}%"
     ).execute()
     return r.data or []
 

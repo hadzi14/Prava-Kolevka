@@ -4583,7 +4583,7 @@ def admin_users():
                             (ne, u["id"]))
                     st.rerun()
             with c2:
-                    if u["is_active"]:
+                if u["is_active"]:
                     if st.button(
                             "Suspenduj",
                             key=f"s_{u['id']}"):

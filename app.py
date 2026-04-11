@@ -4624,15 +4624,15 @@ def admin_users():
                                 "subscription_end=?"
                                 " WHERE id=?",
                                 (ne, u["id"]))
-                        st.rerun()
+                      st.rerun()
                 else:
-                    if st.button(
+                  if st.button(
                             "Aktiviraj",
                             key=f"a_{u['id']}"):
                         ne = (date.today()
-                              + timedelta(
-                                  days=30)
-                              ).isoformat()
+                            + timedelta(
+                                days=30)
+                            ).isoformat()
                         with get_db() as conn:
                             conn.execute(
                                 "UPDATE users"

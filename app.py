@@ -2819,7 +2819,7 @@ def generate_submission(
         case_number, sig_city, sig_name,
         office_name):
     """Generiše podnesak pomoću AI."""
-        # Anonimizuj pre slanja na OpenAI
+    # Anonimizuj pre slanja na OpenAI
     case_description_anon = anonymize_for_ai(
         case_description)
     docs_anon = anonymize_for_ai(case_docs_text)

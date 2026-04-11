@@ -273,7 +273,7 @@ AREA_KEYWORDS = {
 
 AREA_KEY_LAWS = {
     "Radno pravo": {
-        "laws": ["zakon o radu", "zor"],
+        "laws": ["zakon o radu"],
         "label": "Zakon o radu",
         "incompatible": [
             "Krivično pravo",
@@ -281,7 +281,7 @@ AREA_KEY_LAWS = {
             "Prekršajno pravo"],
     },
     "Krivično pravo": {
-        "laws": ["krivični zakonik", "kz",
+        "laws": ["krivični zakonik",
                  "krivicni zakonik"],
         "label": "Krivični zakonik",
         "incompatible": [
@@ -291,59 +291,54 @@ AREA_KEY_LAWS = {
     "Krivični postupak": {
         "laws": ["zakonik o krivičnom postupku",
                  "zakon o krivičnom postupku",
-                 "zkp", "zkpk"],
+                 "zakonik o krivicnom postupku"],
         "label": "Zakonik o krivičnom postupku",
         "incompatible": [
             "Radno pravo", "Porodično pravo",
             "Parnični postupak"],
     },
     "Građansko pravo": {
-        "laws": ["zakon o obligacionim odnosima",
-                 "zoo"],
+        "laws": ["zakon o obligacionim odnosima"],
         "label": "Zakon o obligacionim odnosima",
         "incompatible": [
             "Krivično pravo",
             "Krivični postupak"],
     },
     "Obligaciono pravo": {
-        "laws": ["zakon o obligacionim odnosima",
-                 "zoo"],
+        "laws": ["zakon o obligacionim odnosima"],
         "label": "Zakon o obligacionim odnosima",
         "incompatible": [
             "Krivično pravo",
             "Krivični postupak"],
     },
     "Parnični postupak": {
-        "laws": ["zakon o parničnom postupku",
-                 "zpp", "zppk"],
+        "laws": ["zakon o parničnom postupku"],
         "label": "Zakon o parničnom postupku",
         "incompatible": [
             "Krivični postupak"],
     },
     "Porodično pravo": {
-        "laws": ["porodični zakon", "pz"],
+        "laws": ["porodični zakon"],
         "label": "Porodični zakon",
         "incompatible": [
             "Krivično pravo",
             "Krivični postupak"],
     },
     "Upravno pravo": {
-        "laws": ["zakon o upravnom postupku",
-                 "zup"],
+        "laws": ["zakon o upravnom postupku"],
         "label": "Zakon o upravnom postupku",
         "incompatible": [],
     },
     "Ustavno pravo": {
-        "laws": ["ustav", "ustav kosova"],
+        "laws": ["ustav kosova",
+                 "ustav republike kosovo"],
         "label": "Ustav Kosova",
         "incompatible": [],
     },
     "Privredno pravo": {
         "laws": [
             "zakon o privrednim društvima",
-            "zakon o preduzecima",
             "zakon o privrednim drustvima",
-            "zpd",
         ],
         "label": "Zakon o privrednim društvima",
         "incompatible": [
@@ -353,6 +348,7 @@ AREA_KEY_LAWS = {
         ],
     },
 }
+
 SCOPE_KEYWORDS = [
     "cilj", "delokrug", "oblast primene",
     "predmet", "šta uređuje", "sta uredjuje",

@@ -1659,9 +1659,8 @@ def score_article(art, law, base,
     # 4. Tačan zakon match
     if t_laws:
         name_l = (law.get("name_sr", "") or "").lower()
-        short_l = (law.get("short_name", "") or "").lower()
         for ln in t_laws:
-            if ln.lower() in name_l or ln.lower() in short_l:
+            if ln.lower() in name_l:
                 score += 40
                 break
 

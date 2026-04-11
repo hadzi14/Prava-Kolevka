@@ -4406,41 +4406,71 @@ def admin_users():
                             "notes": ""
                         }
 
-                        # Pokušaj Supabase prvo
+                                                # Pokušaj Supabase prvo
                         created_id = None
+                        sb_error = None
                         if SUPABASE_READY:
                             try:
+                                # Supabase prima bool kao bool,
+                                # int8 id se generiše automatski
+                                sb_user_data = {
+                                    "email": ne.lower().strip(),
+                                    "password_hash": ph,
+                                    "salt": salt,
+                                    "full_name": nn,
+                                    "role": "user",
+                                    "plan": npl,
+                                    "is_active": True,
+                                    "subscription_start": ss,
+                                    "subscription_end": se,
+                                    "auto_suspended": False,
+                                    "suspended_reason": "",
+                                    "notes": "",
+                                }
                                 created_id = sb_create_user(
-                                    user_data)
+                                    sb_user_data)
                                 if created_id:
                                     st.success(
-                                        f"Kreiran u Supabase:"
-                                        f" {nn}")
+                                        f"✅ Kreiran u Supabase: {nn}"
+                                        f" (ID: {created_id})")
+                                    log_action(
+                                        st.session_state.current_user["id"],
+                                        "admin_create_user",
+                                        f"email={ne}")
+                                else:
+                                    sb_error = "sb_create_user vratio None"
                             except Exception as e_sb:
+                                sb_error = str(e_sb)
                                 st.warning(
-                                    f"Supabase greška: {e_sb}"
+                                    f"⚠️ Supabase greška: {e_sb}"
                                     f" — čuvam lokalno.")
 
-                        # Uvek sačuvaj i u SQLite
-                        with get_db() as conn:
-                            conn.execute(
-                                "INSERT OR IGNORE INTO users"
-                                " (email, password_hash,"
-                                " salt, full_name,"
-                                " role, plan, is_active,"
-                                " subscription_start,"
-                                " subscription_end)"
-                                " VALUES(?,?,?,?,"
-                                " 'user',?,1,?,?)",
-                                (ne.lower().strip(),
-                                 ph, salt, nn, npl,
-                                 ss, se))
+                        if sb_error and not created_id:
+                            st.error(
+                                f"Supabase nije prihvatio: {sb_error}")
+
+                        # Uvek sačuvaj i u SQLite kao backup
+                        try:
+                            with get_db() as conn:
+                                conn.execute(
+                                    "INSERT OR IGNORE INTO users"
+                                    " (email, password_hash,"
+                                    " salt, full_name,"
+                                    " role, plan, is_active,"
+                                    " subscription_start,"
+                                    " subscription_end)"
+                                    " VALUES(?,?,?,?,"
+                                    " 'user',?,1,?,?)",
+                                    (ne.lower().strip(),
+                                     ph, salt, nn, npl,
+                                     ss, se))
+                        except Exception:
+                            pass
 
                         if not created_id:
                             st.success(
                                 f"Kreiran lokalno: {nn}")
                         st.rerun()
-
                     except sqlite3.IntegrityError:
                         st.error("Email postoji.")
                     except Exception as e:

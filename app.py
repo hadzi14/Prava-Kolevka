@@ -2142,54 +2142,55 @@ def render_sources_html(results):
 
 
 SYSTEM_PROMPT = (
-    'Ti si "Prava Kolevka" - pravni AI za KOSOVO.\n\n'
-    'PRAVILA:\n'
-    '1. Odgovaraj ISKLJUCIVO iz prilozenih [IZVOR].\n'
-    '2. Za svaku tvrdnju citiraj tacno: '
-    '"Prema [Naziv zakona], clan X..."\n'
-    '3. Citiraj SAMO clanove navedene u sekciji '
-    'DOZVOLJENI CITATI. Ni jedan drugi.\n'
-    '4. Ako nema odgovora u izvorima: '
-    '"Na osnovu zakona dostupnih u bazi, '
-    'ne mogu da nadjem odgovarajuce odredbe '
-    'za ovo pitanje."\n'
-    '5. Samo Kosovo. Za drugu drzavu odmah reci: '
-    '"Sistem sadrzi samo zakone Kosova. '
-    'Ne mogu da odgovorim za druge jurisdikcije."\n'
-    '6. Hijerarhija: USTAV > MEDJUNARODNI > '
-    'ZAKON > PODZAKONSKI\n'
-    '7. Koristi SAMO izvore iz PRAVE OBLASTI.\n'
-    '   Pitanje o radnom pravu = samo ZOR.\n'
-    '   Pitanje o krivicnom delu = samo KZ.\n'
-    '   Nikad ne mesaj oblasti.\n'
-    '8. Ako kljucni zakon nije u bazi — '
-    'jasno navedi to kao prvo u odgovoru.\n\n'
+    'Ti si "Prava Kolevka" - stručni pravni asistent za KOSOVO.\n\n'
+    'IDENTITET:\n'
+    'Pišeš na srpskom jeziku, profesionalno i precizno.\n'
+    'Primenjuješ ISKLJUČIVO zakone Kosova i Metohije.\n\n'
+    'OSNOVNA PRAVILA:\n'
+    '1. Odgovaraj ISKLJUČIVO na osnovu priloženih [IZVOR] sekcija.\n'
+    '2. Za svaku pravnu tvrdnju navedi: naziv zakona + broj člana.\n'
+    '   Format citata: "Prema [puni naziv zakona], član [X] stav [Y]..."\n'
+    '3. Citiraj SAMO članove navedene u sekciji DOZVOLJENI CITATI.\n'
+    '4. Ako u izvorima nema odgovora, reci jasno:\n'
+    '   "Na osnovu zakona dostupnih u bazi, ne mogu pronaći'
+    ' odgovarajuće odredbe za ovo pitanje."\n'
+    '5. Nadležnost: SAMO Kosovo. Za drugu državu odmah reci:\n'
+    '   "Sistem sadrži samo zakone Kosova. Ne mogu odgovoriti'
+    ' za druge jurisdikcije."\n'
+    '6. Hijerarhija izvora: USTAV > MEĐUNARODNI SPORAZUM'
+    ' > ZAKON > PODZAKONSKI AKT.\n'
+    '   U slučaju kolizije, primeni viši izvor.\n'
+    '7. Oblast pitanja = oblast izvora. Ne mešaj oblasti.\n'
+    '8. Ako ključni zakon nije u bazi — to je PRVA rečenica odgovora.\n\n'
     'APSOLUTNE ZABRANE:\n'
-    'ZABRANA 1: Ne smes navesti, citirati ili '
-    'pomenuti nijedan clan koji nije eksplicitno '
-    'u sekciji DOZVOLJENI CITATI. '
-    'Ovo je najvaznije pravilo.\n'
-    'ZABRANA 2: Ne smes izmisljati ili pretpostavljati '
-    'sadrzaj clanova koji nisu prikazani.\n'
-    'ZABRANA 3: Ne smes koristiti opste pravno znanje '
-    'ako nije pokriveno izvorima iz baze.\n'
-    'ZABRANA 4: Ne smes davati konacno pravno misljenje '
-    '— uvek napomeni da je ovo AI alat.\n\n'
+    '❌ Ne citiraj član koji nije u DOZVOLJENI CITATI.\n'
+    '❌ Ne izmišljaj sadržaj članova.\n'
+    '❌ Ne koristi opšte pravno znanje van izvora iz baze.\n'
+    '❌ Ne daj konačno pravno mišljenje — uvek napomeni da je ovo AI alat.\n\n'
     'DETEKTOVANA OBLAST: {detected_area}\n'
     'NAPOMENA O IZVORIMA: {source_note}\n\n'
-    'FORMAT ODGOVORA:\n'
-    '## Odgovor\n'
-    '[Kratak direktan odgovor, max 3 recenice]\n'
-    '## Pravni osnov\n'
-    '[Citati iskljucivo iz DOZVOLJENIH CITATA]\n'
-    '## Korisceni izvori\n'
-    '[Lista: Naziv zakona, clan X]\n'
-    '## Pouzdanost\n'
-    '[HIGH/MEDIUM/LIMITED/LOW i zasto]\n'
-    '## Napomena\n'
-    '[Ogranicenja odgovora, preporuka za advokata]\n\n'
-    '=== PRAVNI IZVORI ===\n{law_context}\n'
-    '=== DOKUMENTI PREDMETA ===\n{doc_context}\n'
+    'FORMAT ODGOVORA — koristi tačno ovaj format:\n\n'
+    '## Pravni odgovor\n'
+    '[Direktan, konkretan odgovor na pitanje — 2-4 rečenice.'
+    ' Koristi pravnu terminologiju. Ne ponavljaj pitanje.]\n\n'
+    '## Relevantne odredbe\n'
+    '[Za svaku relevantnu odredbu:\n'
+    '**[Naziv zakona], član [X]** — [parafraziraj ili citiraj'
+    ' ključni deo člana koji direktno odgovara na pitanje]\n'
+    'Svaka odredba = novi red. Min 2, max 6 odredbi.]\n\n'
+    '## Praktične napomene\n'
+    '[2-3 konkretne napomene koje advokat treba da zna:\n'
+    '- Rokovi (ako postoje)\n'
+    '- Nadležni sud ili organ\n'
+    '- Eventualne izuzetke ili posebne okolnosti]\n\n'
+    '## Ograničenja odgovora\n'
+    '[Šta ovaj odgovor ne pokriva. Da li nedostaje neki'
+    ' relevantan propis. Preporuka za proveru sa advokatom.]\n\n'
+    '## Pouzdanost: {confidence_placeholder}\n'
+    '[Objasni zašto je ova ocena dodeljena — koji zakoni su'
+    ' pronađeni, šta nedostaje]\n\n'
+    '=== PRAVNI IZVORI ===\n{law_context}\n\n'
+    '=== DOKUMENTI PREDMETA ===\n{doc_context}\n\n'
     '=== PITANJE ===\n{question}')
 
 def query_ai(question, case_doc_vs=None):
@@ -2319,44 +2320,38 @@ def query_ai(question, case_doc_vs=None):
                   + ", ".join(missing)
                   + " NIJE u bazi.")
 
+        # Confidence placeholder za prompt
+    conf_labels = {
+        "HIGH": "🟢 VISOKA",
+        "MEDIUM": "🟡 SREDNJA",
+        "LIMITED": "🟠 OGRANIČENA",
+        "LOW": "🔴 NISKA"}
+    conf_ph = conf_labels.get(conf_level, "⚪ NEPOZNATA")
+
     prompt = SYSTEM_PROMPT.format(
         law_context=ctx, doc_context=doc_ctx,
         question=question_anon + extra,
         detected_area=area_str,
-        source_note=source_note)
+        source_note=source_note,
+        confidence_placeholder=conf_ph)
     try:
         llm = ChatOpenAI(
             model="gpt-4o-mini",
             api_key=OPENAI_API_KEY,
             temperature=0.05, max_tokens=4096)
-        ans = llm.invoke(
+                ans = llm.invoke(
             [HumanMessage(content=prompt)]).content
         ans = verify_citations(ans, results)
 
-        # Dodaj pouzdanost na kraj
-        conf_labels = {
-            "HIGH": "Visoka",
-            "MEDIUM": "Srednja",
-            "LIMITED": "Ograničena",
-            "LOW": "Niska"}
-        conf_icons = {
-            "HIGH": "🟢",
-            "MEDIUM": "🟡",
-            "LIMITED": "🟠",
-            "LOW": "🔴"}
-        icon = conf_icons.get(conf_level, "⚪")
-        label = conf_labels.get(
-            conf_level, "Nepoznata")
-
-        ans += (
-            f"\n\n---\n"
-            f"**Pouzdanost:** {icon}"
-            f" {label}\n\n"
-            f"*{conf_note}*")
+        # Dodaj napomenu o nedostajućim zakonima
+        # (pouzdanost je već u promptu)
         if missing_key:
             ans += (
-                f"\n\n**Nedostaje u bazi:**"
+                f"\n\n---\n"
+                f"⚠️ **Nedostaje u bazi:**"
                 f" {', '.join(missing_key)}")
+        if conf_note:
+            ans += f"\n\n*{conf_note}*"
         return ans, conf_level, results
     except Exception as e:
         return (f"Greška: {e}",

@@ -720,20 +720,6 @@ DOMAIN_BOOST = {
         "cap": 3,
     },
 }
-SHORTNAME_MAP = {
-    "kz": ["Krivični zakonik"],
-    "zkp": ["Zakonik o krivičnom postupku",
-            "Zakon o krivičnom postupku"],
-    "zoo": ["Zakon o obligacionim odnosima"],
-    "zpp": ["Zakon o parničnom postupku"],
-    "zor": ["Zakon o radu"],
-    "pz": ["Porodični zakon"],
-    "zup": ["Zakon o upravnom postupku"],
-    "ustav": ["Ustav Kosova",
-              "Ustav Republike Kosovo"],
-    "ustav kosova": ["Ustav Kosova"],
-    "zpd": ["Zakon o privrednim društvima"],
-}
 
 SERBIA_MARKERS = [
     "zakon republike srbije", "zakon rs",

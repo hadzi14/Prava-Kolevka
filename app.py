@@ -1921,9 +1921,6 @@ def search_laws(query, max_results=15):
         rd.values(),
         key=lambda x: x.get('score', 0),
         reverse=True)[:max_results]
-     # DEBUG — obriši posle testiranja
-    import streamlit as st
-    st.caption(f"🔍 DEBUG: rd={len(rd)} kandidata, final={len(sorted_results)} rezultata, areas={t_areas}, t_laws={t_laws}")
     return sorted_results
 
 def format_results(results):

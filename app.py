@@ -5498,9 +5498,9 @@ def main():
         st.session_state["logged_in"] = False
         st.rerun()
         return
-        try:
-        # Prvo pokušaj Supabase
+    try:
         fresh = None
+        # Prvo pokušaj Supabase
         if SUPABASE_READY:
             try:
                 fresh = sb_get_user_by_email(

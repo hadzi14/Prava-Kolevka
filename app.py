@@ -5498,18 +5498,29 @@ def main():
         st.session_state["logged_in"] = False
         st.rerun()
         return
-    try:
-        with get_db() as conn:
-            fresh = conn.execute(
-                "SELECT * FROM users WHERE id=?",
-                (user["id"],)).fetchone()
-            if fresh:
-                st.session_state.current_user = \
-                    dict(fresh)
-            else:
-                do_logout()
-                st.rerun()
-                return
+        try:
+        # Prvo pokušaj Supabase
+        fresh = None
+        if SUPABASE_READY:
+            try:
+                fresh = sb_get_user_by_email(
+                    user["email"])
+            except Exception:
+                pass
+        # Fallback SQLite
+        if not fresh:
+            with get_db() as conn:
+                row = conn.execute(
+                    "SELECT * FROM users WHERE email=?",
+                    (user["email"],)).fetchone()
+                if row:
+                    fresh = dict(row)
+        if fresh:
+            st.session_state.current_user = fresh
+        else:
+            do_logout()
+            st.rerun()
+            return
     except Exception:
         pass
     if st.session_state.current_user[

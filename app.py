@@ -1850,8 +1850,7 @@ def search_laws(query, max_results=15):
                             mc = art.get(
                                 "_match_count", 1)
                             base = 30 + mc * 15
-                            sc = score_article(art, law, 80,
-                   kws, t_areas, t_laws, is_scope_q)
+                            sc = score_article(art, law, 80, kws, t_areas, t_laws, is_scope_q)
                             add(r, sc)
 
         # 3. Scope pitanja — dodaj rane članke

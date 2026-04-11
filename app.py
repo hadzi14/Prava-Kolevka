@@ -2206,17 +2206,12 @@ def query_ai(question, case_doc_vs=None):
 
     # Anonimizuj pre slanja na OpenAI
     question_anon = anonymize_for_ai(question)
-
     results = search_laws(question)
-    conf_level, conf_note = determine_confidence(
-        results, question, t_areas)
+    conf_level, conf_note = determine_confidence(results, question, t_areas)
 
     # Proveri ključni zakon
-    has_key, missing_key = check_key_law_present(
-        t_areas, results)
-
+    has_key, missing_key = check_key_law_present(t_areas, results)
     ctx = format_results(results)
-
     doc_ctx = "(Nema dokumenata.)"
     if case_doc_vs:
         try:

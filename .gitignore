@@ -1,6 +1,35 @@
-.streamlit/secrets.toml
-data/*.db
-__pycache__/
+```
+# Backup files
+*_backup_*.py
+
+# Compiled Python files
 *.pyc
+__pycache__/
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Environment files
 .env
-.DS_Store
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# Distribution artifacts
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+.venv/
+```
